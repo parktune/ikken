@@ -1,6 +1,6 @@
 ---
 name: feedback
-description: ikken 결과물에 대한 사용자 피드백을 ikken 규칙(guide·templates)에 반영해 다음 생성부터 적용되게 하고, 필요하면 방금 만든 HTML 도 고친다. "/ikken:feedback <의견> [html 경로]", 또는 ikken 결과물을 보고 "앞으로는 이렇게", "이건 항상", "다음부터는" 같은 지적을 할 때 쓴다.
+description: ikken 결과물에 대한 사용자 피드백을 활성 프로필의 규칙(guide·templates · 사용자 프로필이면 profile.md·tokens.css)에 반영해 다음 생성부터 적용되게 하고, 필요하면 방금 만든 HTML 도 고친다. "/ikken:feedback <의견> [html 경로]", 또는 ikken 결과물을 보고 "앞으로는 이렇게", "이건 항상", "다음부터는" 같은 지적을 할 때 쓴다.
 argument-hint: "<피드백 내용> [대상 html 경로]"
 ---
 
@@ -25,29 +25,34 @@ argument-hint: "<피드백 내용> [대상 html 경로]"
 
 구분이 애매하면 `AskUserQuestion` 으로 한 번 묻는다: `앞으로 규칙으로 (Recommended)` / `이번 결과물만`.
 
-## 3. 규칙을 어디에 쓰나
-
-먼저 쓰기 위치를 정한다.
+## 3. 규칙을 어디에 쓰나 — 활성 프로필이 정한다
 
 ```bash
-ROOT="$(realpath "${CLAUDE_PLUGIN_ROOT}")"; git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null && test -w "$ROOT" && echo REPO || echo PERSONAL
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" feedback-target      # REPO <경로> | PROFILE <경로> | READONLY <이유>
 ```
 
-- **REPO** (원본 저장소에서 쓰는 중 — 관리자): `$ROOT/guide/*.md` 와, 필요하면 `$ROOT/templates/*.html` 을 고친다.
-- **PERSONAL** (마켓플레이스 설치본 — 공유받은 사람): `~/.claude/ikken/preferences.md` 에 쓴다. 없으면 만든다. `/ikken` 은 이 파일을 저장소 규칙보다 우선해서 읽는다.
+- **REPO** — 활성 프로필이 `default` 이고 원본 저장소에서 쓰는 중(배포자). 저장소의 `profiles/default/` 를 고친다(아래 표의 파일). 진행 절차는 루트 `SKILL.md`. 7 에서 commit · push 한다.
+  - 원저작자가 아닌 사람이 자기 clone 에서 default 를 고치면, 최신 저장소를 pull 할 때 충돌은 그 사람이 직접 관리한다. 이 경우 보고에 한 줄 알린다.
+- **PROFILE** — 활성 프로필이 사용자 프로필(`~/.claude/ikken/profiles/<이름>/`). **그 폴더만** 고치고 저장소는 건드리지 않는다.
+  - 규칙 → `profile.md` 의 해당 절. 절 이름 = 아래 표의 guide 파일 이름(`explanation` · `interaction` · `style` · `patterns` · `verify` · `confluence`), 진행 절차는 `진행 (SKILL)` 절. 기본 규칙을 뒤집는 것이면 "기본과 달리 …" 로 쓴다.
+  - 색·글꼴 토큰 → `tokens.css` (라이트 · 시스템 다크 · 선택 다크 세 블록, `skills/config/SKILL.md` 프리셋과 같은 모양).
+  - 골격 코드로 강제할 것(조작 방향 · 단축키 등) → `profile.md` 에 적는다. 자주 쓰는 골격이면 `templates/<유형>.html` 로 복사해 고친다:
+    `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" template <유형> <프로필 경로>/templates/<유형>.html` 로 시작.
+- **READONLY** — 설치본에서 `default` 가 활성. 저장할 곳이 없으니 `/ikken:config new <이름>` 으로 내 프로필을 만들자고 묻고, 만들면 PROFILE 로 이어 간다.
 
-규칙이 들어갈 파일:
+규칙이 들어갈 곳 (REPO 는 `profiles/default/` 아래 파일, PROFILE 은 `profile.md` 의 같은 이름 절):
 
-| 피드백 주제 | 파일 |
+| 피드백 주제 | 파일 / 절 |
 |---|---|
-| 설명 순서, 문장, 용어, 숫자 표기, 무엇을 넣고 빼나 | `guide/explanation.md` |
-| 버튼·키보드·마우스·단계·범례·토글·선택 | `guide/interaction.md` |
-| 색, 글꼴, 간격, 컴포넌트 모양, 라이브러리 | `guide/style.md` |
-| 페이지 유형, 레이아웃 선택, 데이터 싣기 | `guide/patterns.md` |
-| 점검 절차 | `guide/verify.md` |
-| Confluence 임베드 | `guide/confluence.md` |
-| `/ikken` 진행 절차(구성안, 질문, 보고) | `SKILL.md` |
-| 모든 결과물에 들어가는 코드(테마·로더·조작) | `templates/*.html` — 네 골격 모두 일관되게 |
+| 설명 순서, 문장, 용어, 숫자 표기, 무엇을 넣고 빼나 | `guide/explanation.md` / `explanation` |
+| 버튼·키보드·마우스·단계·범례·토글·선택 | `guide/interaction.md` / `interaction` |
+| 색, 글꼴, 간격, 컴포넌트 모양, 라이브러리 | `guide/style.md` / `style` (+ `tokens.css`) |
+| 페이지 유형, 레이아웃 선택, 데이터 싣기 | `guide/patterns.md` / `patterns` |
+| 점검 절차 | `guide/verify.md` / `verify` |
+| Confluence 임베드 | `guide/confluence.md` / `confluence` |
+| `/ikken` 진행 절차(구성안, 질문, 보고) | 루트 `SKILL.md` / `진행 (SKILL)` |
+| 모든 결과물에 들어가는 코드(테마·로더·조작) | `templates/*.html` — 네 골격 모두 일관되게 / 프로필 `templates/` |
+| 스크립트 동작(`check.py` · `embed.py` · `profile.py`) | 루트 `scripts/` — REPO 일 때만 |
 
 ## 4. 규칙 쓰는 법
 
@@ -60,7 +65,7 @@ ROOT="$(realpath "${CLAUDE_PLUGIN_ROOT}")"; git -C "$ROOT" rev-parse --show-topl
 
 ## 5. 이력
 
-`$ROOT/FEEDBACK.md` 맨 위 표에 한 줄을 추가한다(PERSONAL 이면 `~/.claude/ikken/preferences.md` 끝의 이력 절에 추가).
+`feedback-target` 이 알려 준 프로필의 `FEEDBACK.md` 맨 위 표에 한 줄을 추가한다 — REPO 면 `profiles/default/FEEDBACK.md`, PROFILE 이면 `<프로필>/FEEDBACK.md`.
 
 ```
 | 2026-10-14 | <원문 요약 한 줄> | <반영 파일> | <대상 html 이름 또는 —> |
@@ -70,19 +75,23 @@ ROOT="$(realpath "${CLAUDE_PLUGIN_ROOT}")"; git -C "$ROOT" rev-parse --show-topl
 
 - 규칙대로 대상 HTML 을 고친다. 그 HTML 에 Confluence 버전이 있으면 `scripts/embed.py` 로 다시 만든다.
 - `guide/verify.md` 대로 점검한다(웹 서버는 띄우지 않는다).
-- 템플릿을 고쳤으면 그 템플릿도 `scripts/check.py` 로 점검한다.
+- 골격을 고쳤으면 그 골격도 `scripts/check.py` 로 점검한다(REPO: `profiles/default/templates/`, PROFILE: `<프로필>/templates/`).
 
-## 7. 커밋 (REPO 일 때)
+## 7. 커밋 (REPO 일 때만)
 
 ```bash
+ROOT="$(realpath "${CLAUDE_PLUGIN_ROOT}")"
 git -C "$ROOT" add -A && git -C "$ROOT" commit -m "feedback: <요약>"
 ```
+
+PROFILE 은 커밋하지 않는다(로컬 폴더). 사용자가 그 폴더를 따로 git 으로 관리하면 그쪽은 사용자가 한다.
 
 - 원격(`origin`)이 있으면 push 한다. 없으면 커밋만 한다.
 - `plugin.json` 의 version 은 사용자가 배포를 말할 때만 올린다.
 
 ## 8. 보고
 
+- 반영한 프로필(`default` 저장소 / 사용자 프로필 이름)
 - 바뀐 규칙: 파일별 한두 줄 (전/후)
 - 대상 HTML 수정 여부와 점검 결과
-- 커밋 해시
+- 커밋 해시 (REPO 일 때)

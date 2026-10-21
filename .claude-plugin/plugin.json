@@ -8,17 +8,19 @@
   },
   "license": "MIT",
   "keywords": [
+    "algorithm",
     "claude-code",
-    "plugin",
-    "skill",
-    "visualization",
-    "interactive",
-    "html",
     "explainer",
-    "algorithm"
+    "html",
+    "interactive",
+    "plugin",
+    "profile",
+    "skill",
+    "visualization"
   ],
   "skills": [
     "./",
-    "./skills/feedback"
+    "./skills/feedback",
+    "./skills/config"
   ]
 }

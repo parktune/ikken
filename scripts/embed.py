@@ -2,7 +2,7 @@
 
     python3 embed.py page.html [--out page.confluence.html] [--no-host] [--max-mb 2.0]
 
-근거: guide/confluence.md.
+근거: profiles/default/guide/confluence.md.
 - <script src="https://…"> 를 내려받아 inline classic script 로 (캐시 ~/.cache/ikken/cdn)
 - type="module" · importmap · 동적 import( 가 있으면 실패 — Confluence CSP 가 막는다
 - Google Fonts <link> 제거, 그 밖의 외부 CSS 는 inline <style>
@@ -27,7 +27,7 @@ CACHE = Path.home() / ".cache" / "ikken" / "cdn"
 
 RUNTIME = r"""
 (function(){
-  /* ikken embed runtime — guide/confluence.md */
+  /* ikken embed runtime — profiles/default/guide/confluence.md */
   var q = new URLSearchParams(location.search), root = document.documentElement;
   var inFrame = false; try { inFrame = window.self !== window.top; } catch (e) { inFrame = true; }
   var em = q.get('embed'); var on = em === '1' ? true : em === '0' ? false : inFrame;
@@ -145,7 +145,7 @@ def main():
     if re.search(r'\bimport\s*\(', s): bad.append("dynamic import(")
     if bad:
         print(json.dumps({"ok": False, "error": "Confluence CSP 에서 막히는 모듈 로딩: " + ", ".join(bad) +
-                          " — guide/style.md 「라이브러리」의 classic(UMD) 빌드로 바꾸세요."}, ensure_ascii=False))
+                          " — profiles/default/guide/style.md 「라이브러리」의 classic(UMD) 빌드로 바꾸세요."}, ensure_ascii=False))
         sys.exit(1)
 
     # 2. 외부 script → inline

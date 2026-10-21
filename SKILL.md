@@ -1,6 +1,6 @@
 ---
 name: ikken
-description: 百聞不如一見 — 이론·알고리즘·코드·논문·데이터를 몇 분 안에 이해하도록 interactive HTML 한 장으로 시각화한다. "/ikken <주제 | 경로 | URL | 데이터>", "이거 그림으로 이해시켜줘", "시각화해서 설명해줘", "interactive html 로 보여줘" 같은 요청에 쓴다. Confluence 임베드 버전도 요청 시 만든다. 결과물에 대한 규칙성 피드백은 /ikken:feedback.
+description: 百聞不如一見 — 이론·알고리즘·코드·논문·데이터를 몇 분 안에 이해하도록 interactive HTML 한 장으로 시각화한다. "/ikken <주제 | 경로 | URL | 데이터>", "이거 그림으로 이해시켜줘", "시각화해서 설명해줘", "interactive html 로 보여줘" 같은 요청에 쓴다. Confluence 임베드 버전도 요청 시 만든다. 스타일은 사용자 프로필을 따른다(/ikken:config). 결과물에 대한 규칙성 피드백은 /ikken:feedback.
 argument-hint: "<주제 설명 | 파일·폴더 경로 | URL | 데이터 파일> [저장 경로] [confluence]"
 ---
 
@@ -9,20 +9,24 @@ argument-hint: "<주제 설명 | 파일·폴더 경로 | URL | 데이터 파일>
 사용자가 몇 시간 읽어야 이해할 것을 **몇 분 동안 보고 만져서** 이해하게 하는 HTML 한 장을 만든다.
 예쁜 페이지가 목적이 아니다. 사용자가 다 보고 났을 때 "아, 이렇게 동작하는구나"를 스스로 설명할 수 있으면 성공이다.
 
-플러그인 루트: 이 파일이 있는 디렉터리 (`${CLAUDE_PLUGIN_ROOT}`). 아래 경로는 모두 이 루트 기준이다.
+플러그인 루트: 이 파일이 있는 디렉터리 (`${CLAUDE_PLUGIN_ROOT}`). 스크립트 경로는 이 루트 기준이다.
 
-## 0. 규칙 읽기 — 매번, 생략 없이
+## 0. 프로필 → 규칙 읽기 — 매번, 생략 없이
 
-다음 파일을 전부 읽는다. 이 파일들이 사용자가 원하는 설명·상호작용·디자인을 정의한다. 기억에 기대지 않는다.
+규칙·골격은 **프로필** 단위다(`skills/config/SKILL.md`). 저장소의 `profiles/default/` 가 기본이고, 활성 프로필이 그 위에 기본과 다른 점만 덮어쓴다.
 
-- `guide/explanation.md` — 무엇을 어떤 순서·문장으로 설명하나
-- `guide/interaction.md` — 조작 규칙
-- `guide/style.md` — 토큰·타이포·컴포넌트
-- `guide/patterns.md` — 페이지 유형과 템플릿 선택
-- `guide/verify.md` — 만든 뒤 점검
-- `~/.claude/ikken/preferences.md` — 있으면 읽는다. 개인 규칙이며 저장소 규칙보다 우선한다.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" status --json
+```
 
-이번 요청에서 사용자가 직접 말한 것이 가이드와 다르면 이번 요청을 따른다.
+- `configured` 가 false(처음 실행)면 `skills/config/SKILL.md` 「처음 설정」을 먼저 하고 돌아온다.
+- `error` 가 있으면 사용자에게 알리고 `/ikken:config` 로 고르게 한다.
+- `read` 의 파일을 **순서대로 전부** 읽는다. 기본 규칙 6개 다음에 활성 프로필의 `profile.md`(있으면) 가 온다. 둘이 충돌하면 `profile.md` 가 이긴다. 기억에 기대지 않는다.
+  - `explanation` — 무엇을 어떤 순서·문장으로 설명하나 · `interaction` — 조작 규칙 · `style` — 토큰·타이포·컴포넌트
+  - `patterns` — 페이지 유형과 골격 선택 · `verify` — 만든 뒤 점검 · `confluence` — 임베드(요청 시)
+- 이 문서와 규칙 파일에 나오는 `guide/<이름>.md` · `templates/<유형>.html` 은 위에서 해석한 프로필 기준 경로다.
+
+이번 요청에서 사용자가 직접 말한 것이 규칙과 다르면 이번 요청을 따른다.
 
 ## 1. 입력 해석
 
@@ -82,14 +86,18 @@ argument-hint: "<주제 설명 | 파일·폴더 경로 | URL | 데이터 파일>
 
 ## 5. 만들기
 
-1. 맞는 골격이 있으면 `templates/` 에서 복사해 시작한다. 토큰, 테마 토글, 폰트, 레이아웃, 데이터 로더가 이미 들어 있다.
+1. 맞는 골격이 있으면 프로필 해석을 거쳐 복사해 시작한다 — 프로필 골격이 있으면 그것을, `tokens.css` 가 있으면 기본 토큰 뒤에 덧붙인다.
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" template <walkthrough|explorer|overview|view3d> <저장 경로>.html
+   ```
+   토큰, 테마 토글, 폰트, 레이아웃, 데이터 로더가 이미 들어 있다. `profile.md` 가 골격 코드와 다른 동작(예: 회전 방향)을 정하면 복사한 코드를 그에 맞게 고친다.
    맞는 골격이 없으면 레이아웃·패널은 주제에 맞게 새로 짜고, 공통 부품만 골격에서 가져온다: 토큰, 테마 토글, `loadData`, 패널 제목, embed CSS 규칙.
    골격 안의 `TODO(ikken)` 주석을 모두 채우거나 지운다. 쓰지 않는 컴포넌트는 지운다.
 2. 데이터 가공은 scratchpad 의 python 스크립트로 하고, 결과 JSON 을 HTML 의 `<script type="application/json" id="data">` 에 넣는다.
    화면에 나오는 숫자를 손으로 옮겨 적지 않는다.
 3. 라이브러리는 `guide/style.md` 의 「라이브러리」 표에 있는 classic(UMD) 빌드를 버전 고정 CDN 으로만 불러온다.
    `type="module"`, importmap, 동적 `import()` 는 쓰지 않는다. 이렇게 해야 Confluence 버전으로 그대로 변환된다.
-4. 화면 문구는 한국어로 쓰고 용어는 영어 원문을 그대로 둔다(`guide/explanation.md`).
+4. 화면 문구 언어와 용어 표기는 `guide/explanation.md`(+ 프로필)를 따른다. 기본은 한국어 문장 + 영어 원문 용어다.
 
 ## 6. 점검
 
@@ -110,6 +118,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/embed.py" <page>.html          # → <pag
 짧게 쓴다.
 
 - 저장 경로 (Confluence 버전이 있으면 그것도)
+- 쓴 프로필 한 줄 (`default` 가 아니면 기본과 다른 점 요약)
 - 보는 순서 2–3줄: 무엇부터 누르고 무엇을 움직여 보면 되는지
 - 점검 결과 한 줄 (못 한 항목이 있으면 명시)
 - "규칙으로 남길 피드백은 `/ikken:feedback <의견>`" 한 줄
