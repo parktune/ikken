@@ -1,0 +1,17 @@
+{
+  "name": "ikken",
+  "owner": {
+    "name": "Taeyoon Park",
+    "url": "https://github.com/taeyoonB"
+  },
+  "description": "Marketplace for the ikken plugin",
+  "plugins": [
+    {
+      "name": "ikken",
+      "description": "Turn a theory, algorithm, codebase, paper or dataset into one interactive HTML page.",
+      "source": "./",
+      "category": "productivity",
+      "tags": ["visualization", "interactive", "html", "explainer"]
+    }
+  ]
+}

@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- TODO(ikken): 2–4 단어 제목 -->
+<title>경사로 고도 보기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
+<style>
+[hidden]{display:none!important}
+/* ikken view3d — 전체 viewport: 왼쪽 3D, 오른쪽 aside(sticky nav → 설명 → 범례 → 레이어 → 선택). */
+:root{
+  --bg:#f4f5f2; --panel:#fff; --fg:#1d2420; --muted:#5f6a64; --line:#d8dcd5; --grid:#e6e9e3;
+  --accent:#1f6f5c; --accent-soft:#e2efe9; --hit:#c0392b; --ax-x:#c0392b; --ax-y:#1f8a4c; --ax-z:#0b8fd6;
+  /* TODO(ikken): 의미 색 (light) */
+  --raw:#9aa5a0; --kept:#1f6f5c; --drop:#c0392b; --ground:#d5dad2;
+  --font:"IBM Plex Sans KR",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#121614; --panel:#1a201d; --fg:#e2e7e3; --muted:#9aa59f; --line:#2d3531; --grid:#202824;
+  --accent:#6cc4a8; --accent-soft:#1f322b; --hit:#ff7a5c; --ax-x:#ff7a5c; --ax-y:#5fd08f; --ax-z:#5cc8f5;
+  --raw:#5d6a64; --kept:#6cc4a8; --drop:#ff7a5c; --ground:#252d29; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#121614; --panel:#1a201d; --fg:#e2e7e3; --muted:#9aa59f; --line:#2d3531; --grid:#202824;
+  --accent:#6cc4a8; --accent-soft:#1f322b; --hit:#ff7a5c; --ax-x:#ff7a5c; --ax-y:#5fd08f; --ax-z:#5cc8f5;
+  --raw:#5d6a64; --kept:#6cc4a8; --drop:#ff7a5c; --ground:#252d29; color-scheme:dark;
+}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--font);overflow:hidden;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:minmax(0,1fr);height:100%;position:relative;overflow:hidden}
+main.nopanel{grid-template-columns:minmax(0,1fr)} main.nopanel aside{display:none}
+@media (max-width:760px){main{grid-template-columns:minmax(0,1fr) min(380px,52%)}}
+#view{position:relative;min-width:0;min-height:0;overflow:hidden}
+canvas#c{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+canvas#c.drag{cursor:grabbing}
+.hud{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hud button,.nav button{font:inherit;font-size:.8rem;padding:4px 10px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:5px;cursor:pointer}
+.hud label{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:3px 9px;font:.76rem var(--mono)}
+.hud input[type=range]{width:90px;accent-color:var(--accent)}
+.keys{position:absolute;left:10px;bottom:8px;right:10px;font-size:.74rem;color:var(--muted);pointer-events:none}
+#tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:2px 7px;font:.76rem var(--mono);display:none;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+#theme{position:absolute;right:10px;top:10px;width:34px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:6px;cursor:pointer}
+aside{border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:12px 14px 24px;min-width:0;min-height:0}
+/* 이전/다음은 sticky — aside 가 스크롤돼도 같은 자리 */
+.nav{display:flex;align-items:center;gap:8px;position:sticky;top:-12px;background:var(--panel);padding:12px 0 8px;margin-top:-12px;border-bottom:1px solid var(--line);z-index:2}
+.nav button{font-size:.95rem;padding:3px 11px} .nav button:disabled{opacity:.35;cursor:default}
+.nav .st{font-weight:600;min-width:0} .nav .st small{color:var(--muted);font-family:var(--mono);margin-right:6px;font-weight:400}
+h1{font-size:1rem;margin:12px 0 2px} .lede{color:var(--muted);font-size:.84rem;margin:0 0 6px}
+.desc{font-size:.88rem;margin:10px 0 4px} .desc p{margin:.35rem 0}
+aside h2{font-size:.78rem;margin:16px 0 6px;color:var(--muted);font-weight:600;letter-spacing:.03em}
+aside h2 .h2n{font-weight:400;margin-left:6px}
+code{font-family:var(--mono);font-size:.88em;background:var(--accent-soft);padding:0 4px;border-radius:3px}
+.dl{margin:0;padding:0;list-style:none;font-size:.86rem}
+.dl li{display:grid;grid-template-columns:3.2em 1fr;gap:8px;padding:4px 0;border-bottom:1px solid var(--grid)}
+.dl li b{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.dl li span{color:var(--muted)} .dl li em{font-style:normal;color:var(--fg);font-weight:500}
+.lay label{display:flex;gap:8px;align-items:center;font-size:.86rem;padding:2px 0}
+.lay i{display:inline-block;width:14px;height:4px;border-radius:2px}
+#info{font-size:.86rem} #info .hint{color:var(--muted)}
+#info table{border-collapse:collapse;width:100%} #info td{padding:3px 6px;border-bottom:1px solid var(--grid);vertical-align:top}
+#info td:first-child{color:var(--muted);width:42%} #info td:last-child{font-family:var(--mono);font-size:.82rem}
+.foot{font-size:.76rem;color:var(--muted);margin-top:18px}
+.hud .emb{display:none}
+
+/* Confluence embed — 높이에 맞춘다(이미 전체 viewport). 패널 토글을 HUD 에 보인다 */
+html.embed .hud .emb{display:inline-block}
+html.embed main{grid-template-columns:minmax(0,1fr) min(380px,46%)}
+html.embed main.nopanel{grid-template-columns:minmax(0,1fr)}
+</style>
+</head>
+<body>
+<main id="main">
+  <div id="view"><canvas id="c"></canvas><div id="tip"></div>
+    <div class="hud"><button id="b-fit" title="전체 보기 (F)">전체</button><button id="b-top" title="위에서 보기">평면</button>
+      <label title="높이 과장 배율">높이 ×<span id="zv">3</span><input id="zs" type="range" min="1" max="10" value="3"></label>
+      <button id="b-panel" class="emb" title="패널 열기/닫기">패널</button></div>
+    <button id="theme" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
+    <div class="keys">드래그 회전 · 우클릭 드래그 이동 · 휠 줌 · WASD 수평 · Q/E 아래/위 · Shift 4배 · 더블클릭 포커스 · F 전체 · ←/→ 단계 · xyz 축 = 회전 중심</div>
+  </div>
+  <aside>
+    <div class="nav"><button id="prev" title="이전 단계 (←)" aria-label="이전 단계">◀</button><button id="next" title="다음 단계 (→)" aria-label="다음 단계">▶</button><span class="st"><small id="sno"></small><span id="sname"></span></span></div>
+    <!-- TODO(ikken): h1 + lede (핵심 한 문장) -->
+    <h1>경사로 고도에서 튀는 점 걸러내기</h1>
+    <p class="lede">경사로를 지나는 궤적 120점의 고도를 봅니다. <b>앞뒤 이웃 중앙값에서 0.5 m 넘게 벗어난 점은 버립니다.</b> 높이는 과장 배율로 그립니다.</p>
+    <div class="desc" id="desc"></div>
+    <section id="lgsec"><h2>이 단계의 판정</h2><ul class="dl" id="lg"></ul></section>
+    <section><h2>레이어 <span class="h2n">이 단계에서 그려지는 것</span></h2><div class="lay" id="lay"></div></section>
+    <h2>선택한 점</h2><div id="info"><span class="hint">점에 마우스를 대면 id, 클릭하면 단계별 판정 이력과 값이 나옵니다.</span></div>
+    <!-- TODO(ikken): 출처 -->
+    <p class="foot">데모 데이터 · 구현 예시 <code>filter_z.py:30</code> · 창 ±5점, 임계 0.5 m.</p>
+  </aside>
+</main>
+
+<!-- TODO(ikken): 데이터는 python 으로 — 원점을 대상 중심으로 옮기고 0.1 m 반올림 -->
+<script type="application/json" id="data">{"points":[[-60.0,0.0,-0.0],[-59.0,0.6,0.05],[-58.0,1.1,0.03],[-57.0,1.7,0.07],[-56.0,2.3,0.08],[-55.0,2.8,-0.01],[-53.9,3.4,-0.01],[-52.9,4.0,0.13],[-51.9,4.5,0.04],[-50.9,5.1,0.04],[-49.9,5.6,0.17],[-48.9,6.1,0.1],[-47.9,6.7,0.16],[-46.9,7.2,0.11],[-45.9,7.7,0.15],[-44.9,8.2,0.08],[-43.9,8.7,0.17],[-42.9,9.2,0.22],[-41.8,9.7,0.18],[-40.8,10.2,0.23],[-39.8,10.7,0.24],[-38.8,11.1,0.16],[-37.8,11.6,0.29],[-36.8,12.0,1.71],[-35.8,12.4,1.52],[-34.8,12.8,0.35],[-33.8,13.2,0.4],[-32.8,13.6,0.4],[-31.8,14.0,0.46],[-30.8,14.3,0.41],[-29.7,14.6,0.51],[-28.7,15.0,0.49],[-27.7,15.3,0.61],[-26.7,15.6,0.64],[-25.7,15.9,0.57],[-24.7,16.1,0.62],[-23.7,16.4,0.69],[-22.7,16.6,0.86],[-21.7,16.8,0.84],[-20.7,17.0,0.93],[-19.7,17.2,0.94],[-18.7,17.3,1.05],[-17.6,17.5,1.1],[-16.6,17.6,1.18],[-15.6,17.7,1.3],[-14.6,17.8,1.38],[-13.6,17.9,1.52],[-12.6,17.9,1.58],[-11.6,18.0,1.72],[-10.6,18.0,1.81],[-9.6,18.0,1.94],[-8.6,18.0,2.0],[-7.6,17.9,2.03],[-6.6,17.9,2.26],[-5.5,17.8,2.39],[-4.5,17.7,2.5],[-3.5,17.6,2.57],[-2.5,17.5,1.41],[-1.5,17.4,2.89],[-0.5,17.2,2.9],[0.5,17.0,3.0],[1.5,16.8,3.19],[2.5,16.6,3.34],[3.5,16.4,3.44],[4.5,16.2,3.54],[5.5,15.9,3.61],[6.6,15.6,3.86],[7.6,15.3,3.84],[8.6,15.0,4.02],[9.6,14.7,4.12],[10.6,14.4,4.18],[11.6,14.0,4.36],[12.6,13.6,4.49],[13.6,13.3,4.52],[14.6,12.9,4.64],[15.6,12.5,4.73],[16.6,12.1,4.87],[17.6,11.6,4.84],[18.7,11.2,4.91],[19.7,10.7,4.95],[20.7,10.3,5.01],[21.7,9.8,3.53],[22.7,9.3,5.29],[23.7,8.8,5.24],[24.7,8.3,5.28],[25.7,7.8,5.4],[26.7,7.3,5.49],[27.7,6.8,5.43],[28.7,6.2,5.48],[29.7,5.7,5.48],[30.8,5.2,5.63],[31.8,4.6,5.58],[32.8,4.1,5.69],[33.8,3.5,5.64],[34.8,2.9,5.75],[35.8,2.4,5.74],[36.8,1.8,6.81],[37.8,1.2,5.79],[38.8,0.7,5.73],[39.8,0.1,5.76],[40.8,-0.5,5.88],[41.8,-1.0,5.83],[42.9,-1.6,5.84],[43.9,-2.2,5.77],[44.9,-2.7,5.85],[45.9,-3.3,5.88],[46.9,-3.9,5.81],[47.9,-4.4,5.91],[48.9,-5.0,5.92],[49.9,-5.5,5.84],[50.9,-6.1,5.94],[51.9,-6.6,5.92],[52.9,-7.1,5.96],[53.9,-7.6,5.91],[55.0,-8.2,5.97],[56.0,-8.7,5.98],[57.0,-9.2,5.87],[58.0,-9.6,5.88],[59.0,-10.1,5.98],[60.0,-10.6,6.03]]}</script>
+<script>
+async function loadData(id){
+  const el=document.getElementById(id);
+  if(el.dataset.encoding==='gzip-base64'){
+    const bin=Uint8Array.from(atob(el.textContent.trim()),c=>c.charCodeAt(0));
+    const s=new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(s).text());
+  }
+  return JSON.parse(el.textContent);
+}
+(function(){
+  const root=document.documentElement, KEY='ikken-theme', order=[null,'light','dark'];
+  const q=new URLSearchParams(location.search).get('theme');
+  let cur=null; try{cur=q||localStorage.getItem(KEY)}catch(e){}
+  const apply=()=>{cur?root.setAttribute('data-theme',cur):root.removeAttribute('data-theme')};
+  apply();
+  document.getElementById('theme').addEventListener('click',()=>{
+    cur=order[(order.indexOf(cur)+1)%order.length]; apply();
+    try{cur?localStorage.setItem(KEY,cur):localStorage.removeItem(KEY)}catch(e){}
+    window.dispatchEvent(new Event('themechange'));
+  });
+})();
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=0)=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+(async function main(){
+const D=await loadData('data');
+
+// ── TODO(ikken): 모델 계산 — 실제 규칙 그대로. 단계별 판정·이력 ─────────────────
+const PTS=D.points.map((p,i)=>({id:'p'+i,x:p[0],y:p[1],z:p[2],hist:[]}));
+const W=5, TH=0.5;
+PTS.forEach((p,i)=>{
+  const nb=PTS.slice(Math.max(0,i-W),i+W+1).filter(q=>q!==p).map(q=>q.z).sort((a,b)=>a-b);
+  p.med=nb[Math.floor(nb.length/2)]; p.dev=p.z-p.med; p.keep=Math.abs(p.dev)<=TH;
+  p.hist=[{s:1,t:'입력'},{s:2,t:`중앙값 ${fmt(p.med,2)} m, 차이 ${fmt(p.dev,2)} m → ${p.keep?'유지':'제외'}`}];
+});
+const nDrop=PTS.filter(p=>!p.keep).length;
+
+// ── TODO(ikken): 단계 정의 — layers = 이 단계에서 그릴 것, legend = 이 단계 판정만(null 이면 숨김) ──
+const STEPS=[
+  {name:'원본 고도', desc:`<p>궤적 ${PTS.length}점을 고도 그대로 그립니다. 경사로 중간에 위아래로 튀는 점이 보입니다.</p>`,
+   legend:null, layers:['path','grid'], color:p=>'--raw'},
+  {name:'중앙값 필터', desc:`<p>각 점의 앞뒤 ${W}점 고도 중앙값을 구하고, 그 값에서 <code>${TH} m</code> 넘게 벗어난 점을 제외합니다.</p>`,
+   legend:()=>[[PTS.length-nDrop,'유지','중앙값과의 차이 ≤ '+TH+' m','--kept'],[nDrop,'제외','중앙값과의 차이 > '+TH+' m','--drop']],
+   layers:['grid'], color:p=>p.keep?'--kept':'--drop'},
+];
+// 레이어 = 실제로 그려지는 것(토글 가능). 판정은 레이어가 아니다 — 점 색으로 칠하고 토글하지 않는다.
+const LAYERS={path:{name:'궤적 선',color:'--raw'},grid:{name:'바닥 격자',color:'--line'}};
+
+// ── three.js 장면 (z-up) ─────────────────────────────────────────────────
+const canvas=document.getElementById('c'), view=document.getElementById('view');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,0.1,5000); camera.up.set(0,0,1);
+scene.add(new THREE.AmbientLight(0xffffff,0.9)); const sun=new THREE.DirectionalLight(0xffffff,0.6); sun.position.set(50,-80,120); scene.add(sun);
+const world=new THREE.Group(); scene.add(world);
+let zk=3;   // 높이 배율 — 위치에만 곱한다(점 모양은 그대로)
+const groups={path:new THREE.Group(),grid:new THREE.Group()}; world.add(groups.path); scene.add(groups.grid);
+const pts=new THREE.Group(); world.add(pts);
+const sphere=new THREE.SphereGeometry(0.35,12,8);
+const mats={}; ['--raw','--kept','--drop','--hit'].forEach(t=>mats[t]=new THREE.MeshLambertMaterial({color:0x888888}));
+const meshes=PTS.map((p,i)=>{const m=new THREE.Mesh(sphere,mats['--raw']); m.userData={i}; pts.add(m); return m});
+const lineGeo=new THREE.BufferGeometry().setFromPoints(PTS.map(p=>new THREE.Vector3(p.x,p.y,0)));
+const pathLine=new THREE.Line(lineGeo,new THREE.LineBasicMaterial({color:0x888888})); groups.path.add(pathLine);
+// 바닥 격자: 데이터 범위의 1.5배, 10 m 간격, 가장 낮은 점 높이
+const ext=Math.max(...PTS.map(p=>Math.max(Math.abs(p.x),Math.abs(p.y))))*3, gsz=Math.ceil(ext/10)*10;
+const grid=new THREE.GridHelper(gsz,gsz/10); grid.rotation.x=Math.PI/2; groups.grid.add(grid);
+const zmin=Math.min(...PTS.map(p=>p.z));
+function applyZ(){
+  meshes.forEach(m=>m.position.set(PTS[m.userData.i].x,PTS[m.userData.i].y,(PTS[m.userData.i].z-zmin)*zk));
+  const a=lineGeo.attributes.position; PTS.forEach((p,i)=>a.setZ(i,(p.z-zmin)*zk)); a.needsUpdate=true; lineGeo.computeBoundingSphere();
+}
+applyZ();
+function paint(){const c=STEPS[cur].color; meshes.forEach(m=>{m.material=mats[m.userData.i===sel?'--hit':c(PTS[m.userData.i])]})}
+
+function recolor(){
+  scene.background=new THREE.Color(css('--bg'));
+  colorFocus();
+  for(const t in mats)mats[t].color.set(css(t));
+  pathLine.material.color.set(css('--raw'));
+  [].concat(grid.material).forEach(m=>{m.color.set(css('--line'));m.opacity=.6;m.transparent=true});
+}
+
+// ── 카메라 조작 (guide/interaction.md 「3D」 그대로 — 고치지 않는다) ───────────────
+let cur=0, sel=null;
+const T=new THREE.Vector3(); let R=80, theta=-Math.PI/2, phi=0.6;  // target, 거리, 방위, 고각
+const PHI_MIN=0.05, PHI_MAX=Math.PI/2-0.001;
+// 회전 중심 표시 — 카메라가 바라보는 점(T)에 x · y · z 축 선분. 화면에서 길이가 일정하고 다른 객체에 가리지 않는다
+const ovl=new THREE.Scene(), focusAx=new THREE.Group(); ovl.add(focusAx);   // 오버레이 장면 — 본 장면 위에 깊이를 비우고 그린다
+renderer.autoClear=false;
+const fdAxes=[[1,0,0],[0,1,0],[0,0,1]].map(d=>{  // 굵기가 보이도록 가는 원기둥 (Line 은 1 px)
+  const g=new THREE.CylinderGeometry(0.07,0.07,1,8); g.translate(0,0.5,0);   // +y 방향 길이 1
+  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({depthTest:false,transparent:true,opacity:.95}));
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...d)); m.renderOrder=30; focusAx.add(m); return m});
+function placeFocus(){focusAx.position.copy(T); focusAx.scale.setScalar(R*0.025)}
+function colorFocus(){['--ax-x','--ax-y','--ax-z'].forEach((t,k)=>fdAxes[k].material.color.set(css(t)))}
+function placeCam(){
+  phi=Math.min(PHI_MAX,Math.max(PHI_MIN,phi));
+  camera.position.set(T.x+R*Math.cos(phi)*Math.cos(theta),T.y+R*Math.cos(phi)*Math.sin(theta),T.z+R*Math.sin(phi));
+  camera.lookAt(T); placeFocus();
+}
+const fwd=()=>new THREE.Vector3(-Math.cos(theta),-Math.sin(theta),0);   // 화면 안쪽 수평
+const right=()=>new THREE.Vector3(-Math.sin(theta),Math.cos(theta),0);  // 화면 오른쪽 수평
+let drag=null;
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{drag={b:e.button,x:e.clientX,y:e.clientY,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('drag')});
+canvas.addEventListener('pointermove',e=>{
+  if(!drag){hover(e);return}
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+  if(Math.abs(dx)+Math.abs(dy)>1)drag.moved=true;
+  if(drag.b===0){theta-=dx*0.006; phi+=dy*0.006}               // 가로: 장면이 마우스를 따라 돈다(카메라는 반대) / 세로: 아래로 끌면 내려다봄
+  else if(drag.b===2){const k=R*0.0016; T.addScaledVector(right(),-dx*k); T.addScaledVector(fwd(),dy*k)}  // 장면을 잡고 끈다
+  placeCam();
+});
+canvas.addEventListener('pointerup',e=>{canvas.classList.remove('drag');const d=drag;drag=null;if(d&&!d.moved&&d.b===0)pick(e)});
+canvas.addEventListener('wheel',e=>{e.preventDefault();R=Math.min(3000,Math.max(2,R*Math.exp(e.deltaY*0.0012)));placeCam()},{passive:false});
+canvas.addEventListener('dblclick',e=>{const h=ray(e);if(h){T.copy(h.point);placeCam()}});
+const keys=new Set();
+addEventListener('keydown',e=>{
+  if(e.target.closest('input,select,textarea'))return;
+  const k=e.key.toLowerCase();
+  if('wasdqe'.includes(k)&&k.length===1){keys.add(k);e.preventDefault()}
+  else if(e.key==='Shift')keys.add('shift');
+  else if(k==='f')fit();
+  else if(e.key==='ArrowRight'){go(cur+1);e.preventDefault()} else if(e.key==='ArrowLeft'){go(cur-1);e.preventDefault()}
+  else if(e.key==='Escape')select(null);
+});
+addEventListener('keyup',e=>{keys.delete(e.key.toLowerCase());if(e.key==='Shift')keys.delete('shift')});
+addEventListener('blur',()=>keys.clear());
+let last=performance.now();
+function tick(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(keys.size){
+    const v=R*0.8*dt*(keys.has('shift')?4:1), m=new THREE.Vector3();
+    if(keys.has('w'))m.add(fwd()); if(keys.has('s'))m.sub(fwd()); if(keys.has('d'))m.add(right()); if(keys.has('a'))m.sub(right());
+    if(keys.has('e'))m.z+=1; if(keys.has('q'))m.z-=1;
+    if(m.lengthSq()){T.addScaledVector(m.normalize(),v);placeCam()}
+  }
+  renderer.clear(); renderer.render(scene,camera); renderer.clearDepth(); renderer.render(ovl,camera); requestAnimationFrame(tick);
+}
+function fit(){
+  scene.updateMatrixWorld();
+  const box=new THREE.Box3(); meshes.forEach(m=>box.expandByObject(m));
+  if(box.isEmpty())return; const c=box.getCenter(new THREE.Vector3()), s=box.getSize(new THREE.Vector3()).length();
+  T.copy(c); R=s*0.9; phi=0.75; placeCam();
+}
+document.getElementById('b-fit').onclick=fit;
+document.getElementById('b-top').onclick=()=>{phi=PHI_MAX;placeCam()};
+document.getElementById('b-panel').onclick=()=>{document.getElementById('main').classList.toggle('nopanel');resize()};
+const zs=document.getElementById('zs');
+zs.oninput=()=>{zk=+zs.value;document.getElementById('zv').textContent=zs.value;applyZ()};
+
+// ── hover / pick ─────────────────────────────────────────────────────────
+const rc=new THREE.Raycaster(), tip=document.getElementById('tip');
+function ray(e){
+  const r=canvas.getBoundingClientRect();
+  rc.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);
+  return rc.intersectObjects(meshes,false)[0];
+}
+function hover(e){
+  const h=ray(e); if(!h){tip.style.display='none';return}
+  const p=PTS[h.object.userData.i], r=view.getBoundingClientRect();
+  tip.textContent=`${p.id} · z ${fmt(p.z,2)} m`; tip.style.display='block';
+  tip.style.left=(e.clientX-r.left+12)+'px'; tip.style.top=(e.clientY-r.top+12)+'px';
+}
+function pick(e){const h=ray(e);select(h?h.object.userData.i:null)}
+function select(i){
+  sel=i; paint();
+  const box=document.getElementById('info');
+  if(i==null){box.innerHTML='<span class="hint">점에 마우스를 대면 id, 클릭하면 단계별 판정 이력과 값이 나옵니다.</span>';return}
+  const p=PTS[i];
+  box.innerHTML=`<b style="font-family:var(--mono)">${p.id}</b><table>${p.hist.map(h=>`<tr><td>${h.s} · ${STEPS[h.s-1].name}</td><td>${h.t}</td></tr>`).join('')}
+    <tr><td>x, y</td><td>${fmt(p.x,1)}, ${fmt(p.y,1)} m</td></tr><tr><td>z</td><td>${fmt(p.z,2)} m</td></tr></table>`;
+}
+
+// ── 단계 ─────────────────────────────────────────────────────────────────
+function go(i){
+  cur=Math.max(0,Math.min(STEPS.length-1,i)); const s=STEPS[cur];
+  document.getElementById('sno').textContent=`${cur+1}/${STEPS.length}`; document.getElementById('sname').textContent=s.name;
+  document.getElementById('prev').disabled=cur===0; document.getElementById('next').disabled=cur===STEPS.length-1;
+  document.getElementById('desc').innerHTML=s.desc;
+  const lg=s.legend&&s.legend(); document.getElementById('lgsec').hidden=!lg;
+  // 판정 이름은 점 색과 같은 글자색 — 점이 판정 색으로 칠해질 때만 (4번째 값)
+  if(lg)document.getElementById('lg').innerHTML=lg.map(([n,name,d,c])=>`<li><b>${fmt(n)}</b><span><em${c?` style="color:var(${c})"`:''}>${name}</em> — ${d}</span></li>`).join('');
+  for(const k in groups)groups[k].visible=s.layers.includes(k); paint();
+  document.getElementById('lay').innerHTML=s.layers.map(k=>`<label><input type="checkbox" checked data-k="${k}"><i style="background:var(${LAYERS[k].color})"></i>${LAYERS[k].name}</label>`).join('');
+  document.querySelectorAll('#lay input').forEach(c=>c.onchange=()=>{groups[c.dataset.k].visible=c.checked});
+  try{history.replaceState(null,'','#step='+(cur+1))}catch(e){}
+}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+
+function resize(){const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(view);
+addEventListener('themechange',recolor); matchMedia('(prefers-color-scheme: dark)').addEventListener('change',recolor);
+recolor(); resize();
+const h=+(location.hash.match(/step=(\d+)/)||[])[1]; go(h?h-1:0);
+fit(); requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- TODO(ikken): 2–4 단어 제목 -->
+<title>예시 저장소 구조</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+/* ikken overview — 문서형 단일 열. 흐름도 노드를 누르면 상세가 열린다. */
+:root{
+  --bg:#f6f7f4; --panel:#ffffff; --fg:#1d2420; --muted:#5d6862; --line:#d9ddd6;
+  --accent:#1f6f5c; --accent-soft:#e2efe9; --warn:#9a5b12; --warn-soft:#f6ead8; --code-bg:#eef0eb;
+  --font:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#141917; --panel:#1b211f; --fg:#e3e8e4; --muted:#9aa6a0; --line:#2f3834;
+  --accent:#6cc4a8; --accent-soft:#1f322b; --warn:#e2a95c; --warn-soft:#33281a; --code-bg:#232a27; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#141917; --panel:#1b211f; --fg:#e3e8e4; --muted:#9aa6a0; --line:#2f3834;
+  --accent:#6cc4a8; --accent-soft:#1f322b; --warn:#e2a95c; --warn-soft:#33281a; --code-bg:#232a27; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--font);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:980px;margin:0 auto;padding-inline:20px;padding-block:40px 80px;position:relative}
+#theme{position:absolute;top:36px;right:20px;width:34px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:6px;cursor:pointer}
+h1{font-size:clamp(1.55rem,3.1vw,2.1rem);line-height:1.2;margin:0 0 6px;padding-right:48px;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:1.2rem;margin:48px 0 12px;padding-top:12px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:1rem;margin:24px 0 8px}
+p,li{max-width:72ch}
+.lede{color:var(--muted);margin:0 0 20px}
+.lede b{color:var(--fg)}
+.meta{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+code,pre{font-family:var(--mono);font-size:.86em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px}
+pre{background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:none;padding:0}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:8px 0}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.78rem;letter-spacing:.04em;text-transform:uppercase}
+td code{white-space:nowrap}
+.note{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 6px 6px 0;margin:14px 0}
+.warn{background:var(--warn-soft);border-left:3px solid var(--warn);padding:10px 14px;border-radius:0 6px 6px 0;margin:14px 0}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.88rem;margin:18px 0 0}
+.toc a{color:var(--accent);text-decoration:none}
+/* 흐름도 — 노드는 버튼. 누르면 아래 상세 칸이 바뀐다(칸 높이 고정 아님: 흐름도 위치는 변하지 않음) */
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:stretch;margin:16px 0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0;text-align:left;font:inherit;color:inherit}
+button.box{cursor:pointer}
+button.box[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.box b{display:block;font-size:.92rem;margin-bottom:4px}
+.box .p{font-family:var(--mono);font-size:.76rem;color:var(--muted);word-break:break-all}
+.arrow{align-self:center;color:var(--muted);font-size:1.3rem}
+@media (max-width:720px){.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);justify-self:center}}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-top:4px}
+.detail .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.detail h3{margin:2px 0 6px}
+.detail p{margin:.4rem 0;font-size:.94rem}
+ol.steps{padding-left:0;list-style:none;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding-left:38px;margin:12px 0}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--bg);font:600 .78rem/24px var(--mono);text-align:center}
+.files{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.files .box .p{margin-bottom:4px;color:var(--accent);font-weight:500}
+@media (max-width:520px){.wrap{padding-inline:16px}}
+
+/* Confluence embed — 문서형은 내부 스크롤 하나로 */
+html.embed,html.embed body{height:100%;overflow:hidden}
+html.embed .wrap{height:100%;overflow-y:auto;max-width:none;padding:14px 16px 40px}
+html.embed #theme{top:12px;right:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <button id="theme" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
+  <!-- TODO(ikken): h1 = 대상이 무엇인지, lede = 무엇을 하는 저장소/시스템인지 + 핵심 한 문장(굵게), meta = 버전·커밋·날짜 -->
+  <h1>example_repo 구조</h1>
+  <p class="lede">원본 로그를 읽어 정제한 뒤 학습용 샘플로 내보내는 저장소입니다. <b>모든 단계는 같은 <code>Record</code> 를 받아 같은 <code>Record</code> 를 돌려주므로 순서를 바꾸거나 빼도 됩니다.</b></p>
+  <div class="meta">commit <code>abc1234</code> · 2026-10-14</div>
+  <nav class="toc"><a href="#flow">1. 전체 흐름</a><a href="#files">2. 파일 구성</a><a href="#run">3. 실행</a></nav>
+
+  <h2 id="flow">1. 전체 흐름</h2>
+  <p>단계를 누르면 그 단계가 하는 일과 구현 위치가 아래에 나옵니다.</p>
+  <!-- TODO(ikken): 노드 = 실제 단계. data-k 는 아래 DETAIL 의 키 -->
+  <div class="flow" id="flowbox">
+    <button class="box" data-k="load"><b>load</b><span class="p">io/reader.py</span></button><span class="arrow" aria-hidden="true">→</span>
+    <button class="box" data-k="clean"><b>clean</b><span class="p">steps/clean.py</span></button><span class="arrow" aria-hidden="true">→</span>
+    <button class="box" data-k="export"><b>export</b><span class="p">io/writer.py</span></button>
+  </div>
+  <div class="detail" id="detail"></div>
+
+  <h2 id="files">2. 파일 구성</h2>
+  <div class="files">
+    <div class="box"><div class="p">io/</div>읽기·쓰기. 형식 변환만 하고 판단은 하지 않습니다.</div>
+    <div class="box"><div class="p">steps/</div>정제 단계. 한 파일에 한 단계.</div>
+    <div class="box"><div class="p">configs/</div>실행 설정 <code>*.yaml</code>.</div>
+  </div>
+
+  <h2 id="run">3. 실행</h2>
+  <ol class="steps">
+    <li>설정을 고릅니다: <code>configs/default.yaml</code></li>
+    <li>실행합니다.<pre><code>python -m example_repo.run --config configs/default.yaml</code></pre></li>
+    <li>결과는 <code>out/</code> 아래에 날짜별로 쌓입니다.</li>
+  </ol>
+</div>
+
+<script>
+(function(){
+  const root=document.documentElement, KEY='ikken-theme', order=[null,'light','dark'];
+  const q=new URLSearchParams(location.search).get('theme');
+  let cur=null; try{cur=q||localStorage.getItem(KEY)}catch(e){}
+  const apply=()=>{cur?root.setAttribute('data-theme',cur):root.removeAttribute('data-theme')};
+  apply();
+  document.getElementById('theme').addEventListener('click',()=>{
+    cur=order[(order.indexOf(cur)+1)%order.length]; apply();
+    try{cur?localStorage.setItem(KEY,cur):localStorage.removeItem(KEY)}catch(e){}
+  });
+})();
+// TODO(ikken): 단계 상세 — 하는 일, 입력/출력, 기준값, 구현 파일:줄
+const DETAIL={
+  load:{t:'원본을 Record 로 읽는다',b:'<p>로그 파일을 한 줄씩 읽어 <code>Record</code> 로 바꿉니다. 형식이 틀린 줄은 건너뛰고 개수만 셉니다.</p>',src:'io/reader.py:20'},
+  clean:{t:'쓸 수 없는 Record 를 거른다',b:'<p>필수 필드가 비었거나 시간이 역행하는 Record 를 뺍니다.</p>',src:'steps/clean.py:8'},
+  export:{t:'샘플 파일로 쓴다',b:'<p>Record 를 학습 샘플 형식(<code>jsonl</code>)으로 씁니다.</p>',src:'io/writer.py:14'},
+};
+const boxes=[...document.querySelectorAll('#flowbox button.box')];
+function show(k){
+  boxes.forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k?'true':'false'));
+  const d=DETAIL[k], i=boxes.findIndex(b=>b.dataset.k===k);
+  document.getElementById('detail').innerHTML=`<div class="k">STEP ${i+1} · ${k}</div><h3>${d.t}</h3>${d.b}<p class="meta">${d.src}</p>`;
+}
+boxes.forEach(b=>b.onclick=()=>show(b.dataset.k));
+show(boxes[0].dataset.k);
+</script>
+</body>
+</html>

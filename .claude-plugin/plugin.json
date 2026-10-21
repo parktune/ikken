@@ -1,0 +1,24 @@
+{
+  "name": "ikken",
+  "version": "0.1.0",
+  "description": "百聞不如一見 — turn a theory, algorithm, codebase, paper or dataset into one interactive HTML page you can understand in minutes.",
+  "author": {
+    "name": "Taeyoon Park",
+    "url": "https://github.com/taeyoonB"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "skill",
+    "visualization",
+    "interactive",
+    "html",
+    "explainer",
+    "algorithm"
+  ],
+  "skills": [
+    "./",
+    "./skills/feedback"
+  ]
+}

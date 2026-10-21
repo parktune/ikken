@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- TODO(ikken): 2–4 단어 제목 -->
+<title>주행 궤적 탐색기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<style>
+[hidden]{display:none!important}
+/* ikken explorer — sticky header(제목·메타·player) + 카드 grid. 색은 토큰으로만. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#1d2330; --muted:#677084; --line:#dde1e8; --faint:#eceff4; --chip:#f0f2f6;
+  --hit:#d93a3a; --warn:#b4231b;
+  /* TODO(ikken): 의미 색 (light) */
+  --path:#c9ced8; --ego:#0a7d55; --ego-trail:rgba(10,125,85,.55); --speed:#7b4ff0; --speed-bg:rgba(123,79,240,.14);
+  --font:"IBM Plex Sans KR",system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#12151b; --panel:#1b1f27; --ink:#e7eaf0; --muted:#98a1b3; --line:#2c323d; --faint:#232833; --chip:#262b36;
+  --hit:#ff6262; --warn:#ff7a70;
+  --path:#3a414e; --ego:#37c98f; --ego-trail:rgba(55,201,143,.55); --speed:#a88bff; --speed-bg:rgba(168,139,255,.18);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#12151b; --panel:#1b1f27; --ink:#e7eaf0; --muted:#98a1b3; --line:#2c323d; --faint:#232833; --chip:#262b36;
+  --hit:#ff6262; --warn:#ff7a70;
+  --path:#3a414e; --ego:#37c98f; --ego-trail:rgba(55,201,143,.55); --speed:#a88bff; --speed-bg:rgba(168,139,255,.18);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+input[type=range]{accent-color:var(--speed)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--font);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+header{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+h1{font-size:17px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:12.5px}
+h1,.sub{padding-right:44px}
+#theme{position:absolute;top:12px;right:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:10px}
+/* 이전·다음은 항상 붙어서, 재생 토글은 그 오른쪽, 재생바는 그다음 — 줄바꿈 시에도 순서 유지 */
+.player{display:flex;align-items:center;gap:8px;flex:1 1 420px;min-width:0}
+.pair{display:inline-flex;flex:none}
+.pair .icon:first-child{border-top-right-radius:0;border-bottom-right-radius:0}
+.pair .icon:last-child{border-top-left-radius:0;border-bottom-left-radius:0;border-left:none}
+.icon{width:34px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:none;line-height:1}
+.player input[type=range]{flex:1 1 auto;min-width:80px;width:auto}
+#filabel{flex:none;white-space:nowrap}
+select,button{font:inherit;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+button{cursor:pointer}
+.mono{font-family:var(--mono);font-size:12.5px}
+code{font-family:var(--mono);font-size:.9em;background:var(--chip);padding:0 4px;border-radius:3px}
+main{padding:14px 16px 40px;max-width:1500px;margin:0 auto}
+.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px}
+@media (max-width:980px){.grid{grid-template-columns:1fr}}
+@media (max-width:640px){header{position:relative}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.card h2{font-size:14px;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+.card h2 .tag{white-space:nowrap;font-size:11px;font-weight:600;color:var(--speed);background:var(--speed-bg);border-radius:4px;padding:1px 6px}
+.card h2 .hint{font-weight:400;color:var(--muted);font-size:12px}
+.full{grid-column:1/-1}
+#map{width:100%;height:min(560px,70vh);display:block;background:var(--bg);border-radius:8px;cursor:grab;touch-action:none}
+#map.drag{cursor:grabbing}
+.maptools{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:8px}
+.sw{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:4px}
+table{border-collapse:collapse;width:100%}
+td,th{padding:4px 6px;border-bottom:1px solid var(--faint);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12px}
+.kv td:first-child{color:var(--muted);width:44%}
+.kv td:last-child{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.sec{margin-top:10px}
+.sec h3{font-size:12.5px;margin:0 0 4px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.note{color:var(--muted);font-size:12px;margin-top:6px}
+#chart{width:100%;height:200px;display:block}
+#chart text{fill:var(--muted);font:11px var(--mono)}
+#chart .domain,#chart .tick line{stroke:var(--line)}
+.uses{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.use{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+.use b{display:block;margin-bottom:3px}
+.use .src{color:var(--muted);font-size:12px;margin-top:4px}
+
+/* Confluence embed — html.embed 에서는 페이지 스크롤 없이 높이에 맞춘다 */
+html.embed,html.embed body{height:100%;overflow:hidden}
+html.embed body{display:flex;flex-direction:column}
+html.embed header{position:relative;padding:8px 12px 6px} html.embed .sub{display:none}
+html.embed main{flex:1;min-height:0;overflow-y:auto;max-width:none;padding:10px 12px}
+html.embed #map{height:min(440px,60vh)}
+</style>
+</head>
+<body>
+<header>
+  <button id="theme" class="icon" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
+  <!-- TODO(ikken): h1 = 이 데이터가 무엇인지 / sub = mono 메타(출처·규모·버전) -->
+  <h1>주행 궤적 — 속도와 위치를 프레임 단위로</h1>
+  <div class="sub">demo · 2 sessions · 10 Hz · <span class="mono">sessions/*.json</span></div>
+  <div class="controls">
+    <label>Session <select id="sess"></select></label>
+    <span class="player">
+      <span class="pair"><button id="prev" class="icon" title="이전 프레임 (← · Shift+← 10)" aria-label="이전 프레임"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="3" width="2" height="10"/><path d="M14 3v10L5 8z"/></svg></button><button id="next" class="icon" title="다음 프레임 (→ · Shift+→ 10)" aria-label="다음 프레임"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="12" y="3" width="2" height="10"/><path d="M2 3v10l9-5z"/></svg></button></span>
+      <button id="play" class="icon" title="재생 / 정지 (Space)" aria-label="재생"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z"/></svg></button>
+      <input type="range" id="fi" min="0" max="0" value="0" aria-label="프레임">
+      <span class="mono" id="filabel"></span>
+    </span>
+  </div>
+</header>
+<main>
+<div class="grid">
+  <section class="card">
+    <h2>Map <span class="tag">위치</span><span class="hint">드래그 이동 · 휠 확대 · 점 클릭 = 그 프레임으로</span></h2>
+    <svg id="map"></svg>
+    <div class="maptools"><button id="fitAll" title="전체 (F)">전체</button><button id="follow" title="현재 위치 따라가기">따라가기</button></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--path)"></span>전체 궤적</span>
+      <span><span class="sw" style="background:var(--ego-trail)"></span>지나온 궤적</span>
+      <span><span class="dot" style="background:var(--ego)"></span>현재 위치</span>
+    </div>
+  </section>
+  <section class="card">
+    <h2>이 프레임</h2>
+    <div class="sec"><h3>상태</h3><table class="kv" id="kv"></table></div>
+    <div class="sec"><h3>세션 요약</h3><table class="kv" id="sum"></table></div>
+    <p class="note">값은 원본 그대로이며 단위만 붙였습니다.</p>
+  </section>
+  <section class="card full">
+    <h2>속도 <span class="tag">시간축</span><span class="hint">차트를 클릭하면 그 프레임으로 이동</span></h2>
+    <svg id="chart"></svg>
+  </section>
+  <section class="card full">
+    <!-- TODO(ikken): 이 데이터가 주는 것 / 쓰이는 곳 — 출처와 함께 -->
+    <h2>이 데이터가 주는 것</h2>
+    <div class="uses">
+      <div class="use"><b>위치</b>프레임마다 <code>x</code>, <code>y</code> (m, 로컬 원점).<div class="src">sessions/*.json · pose</div></div>
+      <div class="use"><b>속도</b><code>v</code> (m/s). 위치 차분과 별개로 기록된 값.<div class="src">sessions/*.json · can</div></div>
+    </div>
+  </section>
+</div>
+</main>
+
+<!-- TODO(ikken): 데이터는 python 으로 만들어 여기에 -->
+<script type="application/json" id="data">{"hz":10,"sessions":[{"name":"demo_A","frames":[[0.8,0.2,7.93],[1.5,0.5,7.96],[2.3,0.7,8.26],[3.1,1.0,8.13],[3.9,1.2,8.41],[4.7,1.5,8.44],[5.5,1.7,8.42],[6.3,2.0,8.7],[7.1,2.2,8.61],[8.0,2.5,8.87],[8.8,2.8,8.82],[9.7,3.0,8.92],[10.5,3.3,9.15],[11.4,3.6,9.41],[12.3,3.9,9.22],[13.2,4.2,9.35],[14.1,4.5,9.61],[15.0,4.8,9.83],[16.0,5.2,9.77],[16.9,5.5,9.79],[17.8,5.8,10.11],[18.8,6.2,9.82],[19.7,6.5,10.23],[20.7,6.9,10.09],[21.6,7.2,10.12],[22.6,7.6,10.19],[23.5,7.9,10.34],[24.5,8.3,10.63],[25.5,8.7,10.45],[26.5,9.1,10.69],[27.5,9.5,10.78],[28.5,10.0,10.75],[29.5,10.4,10.89],[30.5,10.8,10.76],[31.5,11.2,10.83],[32.5,11.7,10.95],[33.5,12.2,11.21],[34.5,12.6,11.17],[35.5,13.1,11.18],[36.5,13.6,11.35],[37.5,14.1,11.35],[38.5,14.6,11.34],[39.6,15.1,11.59],[40.6,15.7,11.6],[41.6,16.2,11.46],[42.6,16.8,11.64],[43.7,17.3,11.66],[44.7,17.9,11.84],[45.7,18.5,11.82],[46.7,19.1,11.68],[47.8,19.7,11.99],[48.7,20.3,11.67],[49.8,21.0,11.82],[50.8,21.6,11.98],[51.7,22.2,11.76],[52.7,22.9,11.92],[53.7,23.6,11.76],[54.7,24.2,12.02],[55.7,24.9,12.08],[56.7,25.6,12.01],[57.6,26.4,12.14],[58.6,27.1,11.92],[59.5,27.8,12.08],[60.5,28.6,12.04],[61.4,29.3,12.03],[62.4,30.1,11.98],[63.3,30.9,12.12],[64.2,31.7,12.16],[65.1,32.4,11.96],[66.0,33.2,12.02],[66.9,34.0,11.76],[67.7,34.9,12.0],[68.6,35.7,11.95],[69.5,36.5,12.07],[70.3,37.4,11.97],[71.1,38.2,11.73],[71.9,39.1,11.74],[72.7,39.9,11.82],[73.5,40.8,11.52],[74.3,41.7,11.66],[75.0,42.5,11.5],[75.8,43.4,11.44],[76.5,44.3,11.37],[77.2,45.2,11.61],[77.9,46.1,11.3],[78.6,47.0,11.3],[79.3,47.9,11.3],[80.0,48.8,11.44],[80.6,49.7,11.07],[81.3,50.6,11.15],[81.9,51.5,11.13],[82.5,52.5,11.2],[83.1,53.4,11.11],[83.7,54.3,11.06],[84.2,55.3,10.76],[84.8,56.2,10.74],[85.3,57.1,10.65],[85.9,58.0,10.78],[86.4,59.0,10.73],[86.9,59.9,10.33],[87.3,60.8,10.26],[87.8,61.7,10.21],[88.2,62.6,10.12],[88.7,63.6,10.14],[89.1,64.5,10.1],[89.5,65.4,9.88],[89.9,66.3,9.69],[90.2,67.2,9.77],[90.6,68.1,9.66],[90.9,69.0,9.65],[91.3,69.9,9.71],[91.6,70.8,9.51],[91.9,71.7,9.35],[92.2,72.5,9.29],[92.5,73.4,9.22],[92.8,74.3,8.88],[93.0,75.1,9.12],[93.3,76.0,8.97],[93.5,76.9,8.91],[93.7,77.7,8.78],[93.9,78.5,8.52],[94.1,79.3,8.42],[94.3,80.1,8.21],[94.5,81.0,8.32],[94.6,81.7,7.99],[94.8,82.5,7.89],[94.9,83.3,7.85],[95.1,84.1,7.73],[95.2,84.8,7.7],[95.3,85.6,7.49],[95.4,86.3,7.37],[95.5,87.0,7.33],[95.6,87.7,7.21],[95.7,88.4,7.22],[95.7,89.1,6.98],[95.8,89.9,7.22],[95.9,90.6,7.02],[95.9,91.2,6.74],[96.0,91.9,6.69],[96.0,92.6,6.63],[96.0,93.2,6.54],[96.1,93.8,6.35],[96.1,94.5,6.55],[96.1,95.2,6.52],[96.1,95.8,6.22],[96.1,96.4,6.13],[96.1,97.0,5.89],[96.1,97.6,5.81],[96.1,98.1,5.82],[96.1,98.7,5.7],[96.1,99.3,5.85],[96.1,99.8,5.5],[96.0,100.4,5.36],[96.0,100.9,5.65],[96.0,101.5,5.41],[95.9,102.0,5.18],[95.9,102.5,5.27],[95.9,103.0,4.99],[95.8,103.5,5.12],[95.8,104.1,5.23],[95.7,104.6,5.12],[95.7,105.1,4.99],[95.6,105.5,4.75],[95.6,106.0,4.73],[95.5,106.5,4.59],[95.5,106.9,4.78],[95.4,107.4,4.63],[95.4,107.9,4.68],[95.3,108.3,4.45],[95.2,108.7,4.35],[95.2,109.2,4.54],[95.1,109.6,4.57],[95.1,110.1,4.48],[95.0,110.5,4.42],[94.9,110.9,4.39],[94.9,111.4,4.32],[94.8,111.8,4.08],[94.7,112.2,4.17],[94.7,112.6,4.08],[94.6,113.0,3.92],[94.5,113.4,3.9],[94.5,113.8,3.98],[94.4,114.1,3.96],[94.3,114.6,4.11],[94.3,115.0,4.21],[94.2,115.4,3.99],[94.1,115.8,4.18],[94.1,116.2,4.2],[94.0,116.6,4.18],[93.9,117.0,3.95],[93.9,117.4,3.89],[93.8,117.8,3.9],[93.7,118.1,3.89],[93.7,118.5,3.91],[93.6,118.9,4.09],[93.5,119.3,4.21],[93.5,119.8,4.21],[93.4,120.2,4.08],[93.3,120.6,4.17],[93.3,121.0,4.26],[93.2,121.4,4.0],[93.1,121.8,4.26],[93.1,122.2,4.39],[93.0,122.7,4.37],[92.9,123.1,4.4],[92.9,123.5,4.33],[92.8,124.0,4.25],[92.8,124.4,4.54],[92.7,124.8,4.4],[92.7,125.3,4.63],[92.6,125.8,4.75],[92.5,126.2,4.57],[92.5,126.7,4.63],[92.4,127.2,4.91],[92.4,127.7,4.88],[92.3,128.1,4.71],[92.3,128.6,4.76],[92.3,129.1,4.83],[92.2,129.6,5.2],[92.2,130.1,5.23],[92.1,130.6,5.04],[92.1,131.2,5.38],[92.1,131.7,5.52],[92.0,132.3,5.46],[92.0,132.8,5.42],[92.0,133.4,5.57],[92.0,133.9,5.49],[92.0,134.5,5.52],[92.0,135.1,5.99],[92.0,135.7,5.94],[92.0,136.3,5.98],[92.0,136.9,6.23],[92.0,137.5,6.12],[92.0,138.1,6.38],[92.0,138.8,6.45],[92.0,139.4,6.3],[92.1,140.0,6.41],[92.1,140.7,6.51],[92.2,141.3,6.59],[92.2,142.0,6.82],[92.3,142.7,6.79],[92.3,143.4,6.95],[92.4,144.1,6.93],[92.5,144.8,7.34],[92.6,145.5,7.21],[92.7,146.3,7.35],[92.8,147.0,7.5],[92.9,147.8,7.73],[93.0,148.5,7.64],[93.1,149.3,7.93],[93.3,150.1,7.87],[93.4,150.9,7.98],[93.6,151.6,8.08],[93.8,152.4,7.97],[94.0,153.2,8.24],[94.1,154.0,8.24],[94.3,154.8,8.27],[94.6,155.7,8.69],[94.8,156.5,8.53],[95.0,157.3,8.75],[95.3,158.2,8.95],[95.6,159.1,8.98],[95.8,159.9,8.99],[96.1,160.8,9.16],[96.4,161.7,9.27],[96.8,162.5,9.45],[97.1,163.4,9.28],[97.4,164.3,9.55],[97.8,165.2,9.52],[98.1,166.1,9.62],[98.5,167.0,9.91],[98.9,167.9,9.89],[99.4,168.8,10.0],[99.8,169.7,10.17],[100.2,170.6,10.31],[100.7,171.6,10.21],[101.2,172.5,10.36],[101.7,173.4,10.4],[102.2,174.3,10.48],[102.7,175.2,10.63],[103.2,176.2,10.61],[103.8,177.1,10.72],[104.3,178.0,10.77],[104.9,178.9,11.02],[105.5,179.9,11.0],[106.1,180.8,11.13],[106.7,181.7,11.23],[107.4,182.6,11.02],[108.0,183.5,11.2],[108.7,184.5,11.41],[109.4,185.4,11.43],[110.1,186.3,11.2],[110.8,187.1,11.25],[111.5,188.0,11.43],[112.2,188.9,11.33],[112.9,189.8,11.45],[113.7,190.6,11.42],[114.5,191.5,11.71],[115.3,192.4,11.79],[116.1,193.3,11.87]]},{"name":"demo_B","frames":[[0.8,0.2,7.86],[1.5,0.5,8.19],[2.3,0.7,8.26],[3.1,1.0,8.16],[3.9,1.2,8.55],[4.8,1.5,8.69],[5.6,1.7,8.49],[6.4,2.0,8.88],[7.3,2.2,8.75],[8.1,2.5,8.89],[9.0,2.7,9.19],[9.9,3.0,9.22],[10.7,3.2,9.05],[11.6,3.5,9.25],[12.5,3.7,9.38],[13.5,3.9,9.4],[14.4,4.2,9.44],[15.3,4.4,9.58],[16.2,4.7,9.83],[17.2,4.9,9.64],[18.2,5.1,9.94],[19.1,5.3,9.98],[20.1,5.5,9.9],[21.1,5.8,10.11],[22.1,6.0,10.31],[23.1,6.2,10.35],[24.1,6.3,10.25],[25.2,6.5,10.69],[26.2,6.7,10.69],[27.3,6.9,10.84],[28.3,7.0,10.57],[29.4,7.2,10.71],[30.5,7.3,10.69],[31.6,7.5,11.05],[32.6,7.6,10.91],[33.7,7.7,10.92],[34.8,7.8,11.1],[36.0,7.9,11.36],[37.1,7.9,11.38],[38.2,8.0,11.21],[39.3,8.0,11.23],[40.5,8.0,11.59],[41.6,8.1,11.5],[42.8,8.1,11.6],[43.9,8.0,11.4],[45.1,8.0,11.43],[46.3,8.0,11.73],[47.4,7.9,11.66],[48.6,7.8,11.56],[49.8,7.7,11.94],[50.9,7.6,11.85],[52.1,7.5,11.95],[53.3,7.3,11.69],[54.5,7.1,12.02],[55.6,6.9,11.73],[56.8,6.7,12.07],[58.0,6.5,11.92],[59.2,6.2,11.89],[60.3,6.0,11.99],[61.5,5.7,12.15],[62.7,5.4,11.9],[63.8,5.1,11.85],[64.9,4.7,12.01],[66.1,4.3,11.9],[67.2,4.0,11.84],[68.3,3.6,11.86],[69.4,3.1,11.81],[70.5,2.7,11.86],[71.6,2.2,11.89],[72.7,1.7,11.87],[73.8,1.2,12.04],[74.9,0.7,11.83],[75.9,0.2,11.9],[76.9,-0.4,11.74],[78.0,-1.0,11.78],[79.0,-1.6,11.62],[80.0,-2.2,11.69],[80.9,-2.8,11.56],[81.9,-3.4,11.81],[82.9,-4.1,11.7],[83.8,-4.8,11.51],[84.7,-5.5,11.58],[85.7,-6.2,11.72],[86.5,-6.9,11.34],[87.4,-7.7,11.58],[88.3,-8.4,11.37],[89.1,-9.2,11.35],[89.9,-10.0,11.43],[90.7,-10.8,11.19],[91.5,-11.6,11.18],[92.3,-12.4,11.19],[93.0,-13.3,11.24],[93.7,-14.1,10.92],[94.4,-14.9,11.05],[95.1,-15.8,10.93],[95.7,-16.7,10.83],[96.4,-17.5,10.66],[97.0,-18.4,10.57],[97.5,-19.3,10.37],[98.1,-20.1,10.33],[98.6,-21.0,10.22],[99.1,-21.9,10.41],[99.6,-22.8,10.13],[100.1,-23.7,10.01],[100.6,-24.6,9.9],[101.0,-25.5,10.11],[101.4,-26.4,10.04],[101.8,-27.3,9.87],[102.2,-28.2,9.62],[102.5,-29.1,9.52],[102.8,-30.0,9.44],[103.1,-30.9,9.42],[103.4,-31.7,9.2],[103.7,-32.6,9.22],[103.9,-33.5,9.06],[104.2,-34.4,9.24],[104.4,-35.3,9.15],[104.6,-36.1,8.88],[104.7,-37.0,8.66],[104.9,-37.9,8.85],[105.0,-38.7,8.49],[105.2,-39.5,8.41],[105.3,-40.3,8.17],[105.3,-41.1,8.22],[105.4,-42.0,8.16],[105.5,-42.8,8.07],[105.5,-43.5,7.85],[105.6,-44.3,7.87],[105.6,-45.1,7.57],[105.6,-45.9,7.57],[105.6,-46.6,7.4],[105.5,-47.3,7.43],[105.5,-48.1,7.19],[105.5,-48.8,7.08],[105.4,-49.5,7.09],[105.4,-50.2,6.97],[105.3,-50.9,7.01],[105.2,-51.5,6.89],[105.1,-52.2,6.89],[105.0,-52.9,6.75],[104.9,-53.5,6.68],[104.8,-54.2,6.66],[104.7,-54.8,6.37],[104.5,-55.4,6.25],[104.4,-56.1,6.42],[104.2,-56.7,6.0],[104.1,-57.2,6.14],[103.9,-57.8,6.02],[103.8,-58.4,5.7],[103.6,-58.9,5.93],[103.4,-59.5,5.87],[103.3,-60.1,5.68],[103.1,-60.6,5.65],[102.9,-61.1,5.6],[102.7,-61.6,5.25],[102.6,-62.1,5.33],[102.4,-62.6,5.25],[102.2,-63.1,5.31],[102.0,-63.6,5.23],[101.8,-64.1,5.17],[101.6,-64.5,5.01],[101.4,-65.0,5.07],[101.2,-65.4,4.92],[101.0,-65.9,4.86],[100.8,-66.3,4.62],[100.6,-66.7,4.48],[100.4,-67.1,4.47],[100.2,-67.5,4.51],[100.0,-67.9,4.36],[99.8,-68.3,4.6],[99.6,-68.7,4.44],[99.4,-69.1,4.43],[99.2,-69.5,4.39],[99.0,-69.9,4.37],[98.8,-70.2,4.26],[98.6,-70.6,4.03],[98.4,-71.0,4.31],[98.2,-71.3,4.26],[98.0,-71.7,4.14],[97.8,-72.1,4.13],[97.6,-72.4,4.15],[97.4,-72.8,3.9],[97.2,-73.1,4.15],[97.0,-73.5,3.94],[96.8,-73.8,3.86],[96.6,-74.1,3.92],[96.4,-74.5,4.1],[96.2,-74.8,3.88],[96.0,-75.2,4.1],[95.7,-75.5,4.19],[95.5,-75.9,4.0],[95.3,-76.2,3.96],[95.1,-76.6,4.01],[94.9,-76.9,4.1],[94.7,-77.3,4.14],[94.5,-77.6,4.1],[94.3,-78.0,4.13],[94.1,-78.3,3.92],[93.9,-78.7,3.97],[93.7,-79.0,4.04],[93.5,-79.4,4.26],[93.3,-79.8,4.12],[93.1,-80.2,4.25],[92.9,-80.5,4.07],[92.7,-80.9,4.12],[92.5,-81.2,4.24],[92.3,-81.6,4.45],[92.1,-82.0,4.5],[91.9,-82.5,4.54],[91.7,-82.8,4.43],[91.5,-83.3,4.57],[91.3,-83.7,4.6],[91.2,-84.1,4.66],[91.0,-84.5,4.57],[90.8,-85.0,4.94],[90.6,-85.4,4.73],[90.4,-85.9,5.1],[90.2,-86.3,5.15],[90.0,-86.8,4.85],[89.8,-87.3,5.09],[89.6,-87.8,5.31],[89.4,-88.3,5.44],[89.3,-88.8,5.3],[89.1,-89.3,5.31],[88.9,-89.8,5.36],[88.7,-90.3,5.73],[88.6,-90.9,5.52],[88.4,-91.4,5.75],[88.3,-92.0,5.65],[88.1,-92.5,5.89],[88.0,-93.1,6.15],[87.8,-93.7,5.91],[87.7,-94.3,6.27],[87.6,-94.9,6.23],[87.4,-95.6,6.48],[87.3,-96.2,6.49],[87.2,-96.8,6.4],[87.1,-97.5,6.76],[87.0,-98.2,6.69],[87.0,-98.8,6.6],[86.9,-99.5,6.68],[86.8,-100.2,6.98],[86.8,-100.9,7.06],[86.7,-101.6,7.09],[86.7,-102.3,7.13],[86.7,-103.0,7.31],[86.7,-103.8,7.4],[86.7,-104.5,7.7],[86.7,-105.3,7.47],[86.7,-106.1,7.87],[86.8,-106.9,8.0],[86.8,-107.6,7.82],[86.9,-108.5,8.24],[87.0,-109.3,8.25],[87.1,-110.1,8.43],[87.2,-110.9,8.28],[87.3,-111.8,8.42],[87.5,-112.6,8.52],[87.7,-113.5,8.86],[87.9,-114.3,8.8],[88.1,-115.2,8.8],[88.3,-116.1,8.93],[88.5,-116.9,8.96],[88.8,-117.8,8.97],[89.1,-118.6,9.09],[89.4,-119.5,9.47],[89.7,-120.4,9.35],[90.1,-121.3,9.7],[90.4,-122.2,9.52],[90.8,-123.1,9.62],[91.2,-124.0,9.8],[91.6,-124.9,9.76],[92.1,-125.7,9.93],[92.5,-126.7,10.25],[93.0,-127.6,10.3],[93.6,-128.4,10.36],[94.1,-129.3,10.37],[94.7,-130.2,10.56],[95.3,-131.1,10.65],[95.9,-132.0,10.57],[96.5,-132.8,10.72],[97.1,-133.7,10.52],[97.8,-134.5,10.87],[98.5,-135.4,10.83],[99.2,-136.2,11.02],[99.9,-137.0,11.04],[100.7,-137.9,10.96],[101.4,-138.6,10.93],[102.2,-139.4,11.35],[103.0,-140.2,11.09],[103.9,-141.0,11.28],[104.7,-141.7,11.29],[105.6,-142.5,11.32],[106.5,-143.2,11.55],[107.4,-143.9,11.69],[108.3,-144.6,11.45],[109.2,-145.3,11.66],[110.2,-145.9,11.56],[111.2,-146.6,11.7],[112.1,-147.2,11.67]]}]}</script>
+<script>
+async function loadData(id){
+  const el=document.getElementById(id);
+  if(el.dataset.encoding==='gzip-base64'){
+    const bin=Uint8Array.from(atob(el.textContent.trim()),c=>c.charCodeAt(0));
+    const s=new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(s).text());
+  }
+  return JSON.parse(el.textContent);
+}
+(function(){
+  const root=document.documentElement, KEY='ikken-theme', order=[null,'light','dark'];
+  const q=new URLSearchParams(location.search).get('theme');
+  let cur=null; try{cur=q||localStorage.getItem(KEY)}catch(e){}
+  const apply=()=>{cur?root.setAttribute('data-theme',cur):root.removeAttribute('data-theme')};
+  apply();
+  document.getElementById('theme').addEventListener('click',()=>{
+    cur=order[(order.indexOf(cur)+1)%order.length]; apply();
+    try{cur?localStorage.setItem(KEY,cur):localStorage.removeItem(KEY)}catch(e){}
+    window.dispatchEvent(new Event('themechange'));
+  });
+})();
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=0)=>v==null?'—':v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+(async function main(){
+const D=await loadData('data');
+const sessSel=document.getElementById('sess'), fi=document.getElementById('fi'), lab=document.getElementById('filabel');
+D.sessions.forEach((s,i)=>sessSel.add(new Option(s.name,i)));
+let S=D.sessions[0], f=0, playing=null, follow=false;
+
+// ── Map (d3 zoom, y-up 데이터 → y-down 화면) ───────────────────────────────
+const map=d3.select('#map'), gRoot=map.append('g'), gPath=gRoot.append('path'), gTrail=gRoot.append('path'), gPts=gRoot.append('g'), gEgo=gRoot.append('circle');
+const zoom=d3.zoom().scaleExtent([.2,200]).on('zoom',e=>{gRoot.attr('transform',e.transform);k=e.transform.k;styleStroke()});
+let k=1; map.call(zoom).on('dblclick.zoom',null);
+map.on('mousedown.c',()=>map.classed('drag',true)).on('mouseup.c',()=>map.classed('drag',false));
+const line=d3.line().x(d=>d[0]).y(d=>-d[1]);
+function styleStroke(){gPath.attr('stroke-width',3/k);gTrail.attr('stroke-width',3/k);gEgo.attr('r',6/k).attr('stroke-width',2/k);gPts.selectAll('circle').attr('r',4/k)}
+function fitAll(){
+  const n=map.node(), W=n.clientWidth, H=n.clientHeight, xs=S.frames.map(d=>d[0]), ys=S.frames.map(d=>-d[1]);
+  const x0=d3.min(xs),x1=d3.max(xs),y0=d3.min(ys),y1=d3.max(ys), s=0.9*Math.min(W/(x1-x0||1),H/(y1-y0||1));
+  map.transition().duration(300).call(zoom.transform,d3.zoomIdentity.translate(W/2-s*(x0+x1)/2,H/2-s*(y0+y1)/2).scale(s));
+}
+function drawMap(){
+  gPath.attr('d',line(S.frames)).attr('fill','none').attr('stroke',css('--path'));
+  gTrail.attr('d',line(S.frames.slice(0,f+1))).attr('fill','none').attr('stroke',css('--ego-trail'));
+  // 클릭용 점 (10 프레임마다)
+  const pts=gPts.selectAll('circle').data(S.frames.filter((_,i)=>i%10===0));
+  pts.join('circle').attr('cx',d=>d[0]).attr('cy',d=>-d[1]).attr('fill','transparent').style('cursor','pointer')
+    .on('click',(e,d)=>go(S.frames.indexOf(d)));
+  const c=S.frames[f]; gEgo.attr('cx',c[0]).attr('cy',-c[1]).attr('fill',css('--ego')).attr('stroke',css('--panel'));
+  styleStroke();
+  if(follow){const n=map.node();map.call(zoom.translateTo,c[0],-c[1],[n.clientWidth/2,n.clientHeight/2])}
+}
+
+// ── Chart ────────────────────────────────────────────────────────────────
+const ch=d3.select('#chart'), M={l:40,r:10,t:8,b:22};
+function drawChart(){
+  const W=ch.node().clientWidth, H=ch.node().clientHeight; ch.selectAll('*').remove();
+  const x=d3.scaleLinear([0,S.frames.length-1],[M.l,W-M.r]), y=d3.scaleLinear([0,d3.max(S.frames,d=>d[2])*1.1],[H-M.b,M.t]).nice();
+  ch.append('g').attr('transform',`translate(0,${H-M.b})`).call(d3.axisBottom(x).ticks(8).tickFormat(i=>(i/D.hz).toFixed(0)+' s'));
+  ch.append('g').attr('transform',`translate(${M.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(v=>v+' m/s'));
+  ch.append('path').attr('d',d3.area().x((d,i)=>x(i)).y0(H-M.b).y1(d=>y(d[2]))(S.frames)).attr('fill',css('--speed-bg'));
+  ch.append('path').attr('d',d3.line().x((d,i)=>x(i)).y(d=>y(d[2]))(S.frames)).attr('fill','none').attr('stroke',css('--speed')).attr('stroke-width',1.5);
+  ch.append('line').attr('x1',x(f)).attr('x2',x(f)).attr('y1',M.t).attr('y2',H-M.b).attr('stroke',css('--ink')).attr('stroke-dasharray','3 3');
+  ch.append('circle').attr('cx',x(f)).attr('cy',y(S.frames[f][2])).attr('r',4).attr('fill',css('--speed'));
+  ch.on('click',e=>{const [mx]=d3.pointer(e);go(Math.round(x.invert(mx)))}).style('cursor','pointer');
+}
+
+// ── 표 ───────────────────────────────────────────────────────────────────
+function tables(){
+  const c=S.frames[f], kv=[['frame',`${f} / ${S.frames.length-1}`],['t',fmt(f/D.hz,1)+' s'],['x',fmt(c[0],1)+' m'],['y',fmt(c[1],1)+' m'],['v',fmt(c[2],2)+' m/s']];
+  document.getElementById('kv').innerHTML=kv.map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+  const vs=S.frames.map(d=>d[2]);
+  let dist=0; for(let i=1;i<S.frames.length;i++)dist+=Math.hypot(S.frames[i][0]-S.frames[i-1][0],S.frames[i][1]-S.frames[i-1][1]);
+  const sum=[['frames',fmt(S.frames.length)],['duration',fmt(S.frames.length/D.hz,1)+' s'],['distance',fmt(dist,0)+' m'],['v max',fmt(d3.max(vs),2)+' m/s']];
+  document.getElementById('sum').innerHTML=sum.map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+}
+
+function go(i){
+  f=Math.max(0,Math.min(S.frames.length-1,i)); fi.value=f; lab.textContent=`${f} · ${fmt(f/D.hz,1)} s`;
+  drawMap(); drawChart(); tables();
+  try{history.replaceState(null,'',`#s=${sessSel.value}&f=${f}`)}catch(e){}
+}
+function setSession(i){S=D.sessions[i]; fi.max=S.frames.length-1; go(0); fitAll()}
+sessSel.onchange=()=>setSession(+sessSel.value);
+fi.oninput=()=>go(+fi.value);
+document.getElementById('prev').onclick=()=>go(f-1);
+document.getElementById('next').onclick=()=>go(f+1);
+const playBtn=document.getElementById('play'), PLAY='<path d="M4 2.5v11l9.5-5.5z"/>', PAUSE='<rect x="3" y="2.5" width="3.5" height="11"/><rect x="9.5" y="2.5" width="3.5" height="11"/>';
+function toggle(){
+  if(playing){clearInterval(playing);playing=null}
+  else playing=setInterval(()=>{if(f>=S.frames.length-1){toggle();return}go(f+1)},1000/D.hz);
+  playBtn.querySelector('svg').innerHTML=playing?PAUSE:PLAY; playBtn.setAttribute('aria-label',playing?'정지':'재생');
+}
+playBtn.onclick=toggle;
+document.getElementById('fitAll').onclick=()=>{follow=false;document.getElementById('follow').style.background='';fitAll()};
+document.getElementById('follow').onclick=e=>{follow=!follow;e.currentTarget.style.background=follow?'var(--speed-bg)':'';drawMap()};
+addEventListener('keydown',e=>{
+  if(e.target.closest('input[type=text],select,textarea'))return;
+  const n=e.shiftKey?10:1;
+  if(e.key==='ArrowRight'){go(f+n);e.preventDefault()} else if(e.key==='ArrowLeft'){go(f-n);e.preventDefault()}
+  else if(e.key===' '){toggle();e.preventDefault()} else if(e.key==='f'||e.key==='F')fitAll();
+});
+addEventListener('resize',()=>{drawChart()});
+addEventListener('themechange',()=>{drawMap();drawChart()});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{drawMap();drawChart()});
+const m=location.hash.match(/s=(\d+)&f=(\d+)/);
+sessSel.value=m?m[1]:0; setSession(+sessSel.value); if(m)go(+m[2]);
+})();
+</script>
+</body>
+</html>

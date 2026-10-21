@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- TODO(ikken): 2–4 단어 제목 -->
+<title>거리 기준 점 묶기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+/* ikken walkthrough — 왼쪽: 그림(stage), 오른쪽: 단계 버튼 → 이전/다음(고정) → 단계 설명(가변). */
+:root{
+  box-sizing:border-box;
+  --bg:#E6ECEF; --panel:#F7F9FA; --ink:#15212B; --muted:#56676F; --line:#C3CFD6; --grid:#E3EAEE; --code:#EEF2F4;
+  --hit:#D23D26; --hit-f:rgba(210,61,38,.40);
+  /* TODO(ikken): 의미 색 — 이름은 뜻으로 (light) */
+  --base:#9AA8B2; --link:#3D6FB6; --link-f:rgba(61,111,182,.18); --grp:#17808A; --grp-f:rgba(23,128,138,.16);
+  --font:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,"IBM Plex Sans KR",monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0E151B; --panel:#151F28; --ink:#DCE5EB; --muted:#8B9AA5; --line:#293744; --grid:#1A2530; --code:#101921;
+  --hit:#FF6B50; --hit-f:rgba(255,107,80,.40);
+  --base:#4B5A66; --link:#7FA8E8; --link-f:rgba(127,168,232,.18); --grp:#4CC0C8; --grp-f:rgba(76,192,200,.15);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E151B; --panel:#151F28; --ink:#DCE5EB; --muted:#8B9AA5; --line:#293744; --grid:#1A2530; --code:#101921;
+  --hit:#FF6B50; --hit-f:rgba(255,107,80,.40);
+  --base:#4B5A66; --link:#7FA8E8; --link-f:rgba(127,168,232,.18); --grp:#4CC0C8; --grp-f:rgba(76,192,200,.15);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+input[type=range]{accent-color:var(--ink)}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:1240px; margin:0 auto; padding-block:28px 56px; padding-inline:20px}
+header{position:relative; padding-right:48px}
+header h1{font-size:clamp(1.55rem,3.1vw,2.25rem); line-height:1.2; margin:0 0 .4rem; font-weight:700; letter-spacing:-.01em; text-wrap:balance}
+header p{margin:0; color:var(--muted); max-width:70ch}
+header p b{color:var(--ink)}
+.sum{margin:.5rem 0 0; padding-left:1.3rem; max-width:76ch; line-height:1.7}
+.sum li::marker{font-family:var(--mono); color:var(--muted)}
+#theme{position:absolute; top:4px; right:0}
+.icon{width:34px; height:30px; padding:0; display:inline-flex; align-items:center; justify-content:center; font:inherit; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:6px; cursor:pointer}
+code,.mono{font-family:var(--mono); font-size:.88em}
+code{background:var(--code); padding:1px 5px; border-radius:3px}
+.layout{display:grid; grid-template-columns:minmax(0,1fr) 380px; grid-template-rows:auto 1fr; grid-template-areas:"stage ctrl" "stage side"; gap:14px 22px; margin-top:24px; align-items:start}
+.layout>.stage{grid-area:stage} .ctrl{grid-area:ctrl} .side{grid-area:side}
+/* 조작부(단계 버튼 + 이전/다음)는 길이가 변하는 그림·카드와 분리한다. 한 열로 접히면 맨 위에 sticky — 어느 폭에서도 단계를 넘겨도 위치가 그대로다 */
+.ctrl{display:flex; flex-direction:column; gap:8px; min-width:0}
+@media (max-width:940px){
+  .layout{grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:"ctrl" "stage" "side"}
+  .ctrl{position:sticky; top:env(safe-area-inset-top,0px); z-index:5; background:var(--bg); padding-block:6px}
+}
+.stage{background:var(--panel); border:1px solid var(--line); border-radius:6px; overflow:hidden; min-width:0}
+/* 패널 제목 — 모든 패널에 지칭할 이름을 단다 (guide/style.md 레이아웃) */
+.ptitle{font-size:.78rem; font-weight:600; letter-spacing:.02em; padding:8px 14px; border-bottom:1px solid var(--line); color:var(--ink)}
+.ptitle span{font-weight:400; color:var(--muted); margin-left:6px}
+.mapbox{position:relative; width:100%; aspect-ratio:16/10}
+#map{position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; user-select:none}
+#map.drag{cursor:grabbing}
+.hud{position:absolute; left:10px; top:10px; display:flex; gap:6px}
+.hud button{font:inherit; font-size:.78rem; padding:3px 9px; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:4px; cursor:pointer}
+.hud .emb{display:none}
+.scalebar{position:absolute; right:12px; bottom:10px; font-size:.72rem; color:var(--muted); pointer-events:none; text-align:right; font-family:var(--mono)}
+.scalebar i{display:block; height:0; border-bottom:2px solid var(--muted); margin-top:2px; margin-left:auto}
+.tip{position:absolute; pointer-events:none; background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:6px 9px; font-size:.78rem; line-height:1.45; box-shadow:0 2px 10px rgba(0,0,0,.12); max-width:260px; z-index:3}
+.tip b{font-family:var(--mono); font-weight:500}
+.legend{display:flex; flex-wrap:wrap; gap:6px 16px; padding:10px 14px; border-top:1px solid var(--line); font-size:.8rem; color:var(--muted)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:18px; height:10px; border-radius:2px; display:inline-block; border:1.5px solid}
+.side{display:flex; flex-direction:column; gap:14px; min-width:0}
+.steps{display:grid; grid-template-columns:repeat(var(--n,6),minmax(0,1fr)); gap:6px}
+/* 단계가 5개를 넘으면 5개씩 페이지로 — [‹ 페이지][5칸][페이지 ›], 마지막 페이지의 빈칸도 자리를 지킨다 */
+.steps.paged{grid-template-columns:auto repeat(5,minmax(0,1fr)) auto}
+.steps button.pg{font-family:var(--font); font-size:.74rem; padding:8px 8px; color:var(--muted)}
+.steps button.pg:disabled{opacity:.35; cursor:default}
+.steps .gap{visibility:hidden}
+.steps button{font:inherit; font-size:.82rem; padding:8px 0; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:4px; cursor:pointer; font-family:var(--mono)}
+.steps button[aria-current="true"]{background:var(--ink); color:var(--panel); border-color:var(--ink)}
+.nav{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.nav button{font:inherit; font-size:.9rem; padding:9px 0; border:1px solid var(--ink); background:transparent; color:var(--ink); border-radius:4px; cursor:pointer}
+.nav button:disabled{opacity:.35; cursor:default}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:16px 18px; min-width:0}
+.card .k{font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-family:var(--mono)}
+.card h2{font-size:1.18rem; margin:.15rem 0 .5rem; line-height:1.35; text-wrap:balance}
+.card h3{font-size:.8rem; margin:1rem 0 .3rem; color:var(--muted); font-weight:500}
+.card p{margin:.45rem 0; font-size:.94rem}
+.card ul{margin:.4rem 0; padding-left:1.15rem; font-size:.92rem}
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:.7rem 0 .3rem}
+.stats div{border-top:2px solid var(--line); padding-top:4px; min-width:0}
+.stats b{display:block; font-size:1.25rem; font-variant-numeric:tabular-nums; font-weight:700}
+.stats span{font-size:.74rem; color:var(--muted)}
+/* 판정 범례 — 그 단계 판정만, 개수 + 한 줄 설명, 색 견본 없음 */
+.dl{margin:.3rem 0 0; padding:0; list-style:none; font-size:.86rem}
+.dl li{display:grid; grid-template-columns:3.2em 1fr; gap:8px; padding:4px 0; border-bottom:1px solid var(--grid)}
+.dl li b{font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right}
+.dl li span{color:var(--muted)}
+.dl li em{font-style:normal; color:var(--ink); font-weight:500}
+/* 파라미터 놀이터 */
+.uf{margin-top:.8rem; padding-top:.6rem; border-top:1px solid var(--line)}
+.uf .row{display:flex; gap:8px; align-items:center}
+.uf label{font-size:.82rem; color:var(--muted); white-space:nowrap}
+.uf input[type=range]{flex:1; min-width:0}
+.uf output{font-family:var(--mono); font-size:.82rem; min-width:4.5em; text-align:right}
+.uf button{font:inherit; font-size:.78rem; padding:3px 9px; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:4px; cursor:pointer}
+.uf .hint{font-size:.78rem; color:var(--muted); margin-top:4px}
+.info{font-size:.86rem}
+.info table{border-collapse:collapse; width:100%}
+.info td{padding:3px 6px; border-bottom:1px solid var(--grid); vertical-align:top}
+.info td:first-child{color:var(--muted); width:40%}
+.info .ph{color:var(--muted); font-size:.84rem}
+.foot{margin-top:28px; font-size:.82rem; color:var(--muted); max-width:90ch}
+@media (max-width:520px){.wrap{padding-inline:16px} .stats b{font-size:1.05rem}}
+
+/* Confluence embed — scripts/embed.py 가 iframe 안에서 html.embed 를 붙인다. 페이지는 스크롤하지 않고 높이에 맞춘다. */
+html.embed,html.embed body{height:100%; overflow:hidden}
+html.embed .wrap{max-width:none; height:100%; display:flex; flex-direction:column; padding:10px 12px}
+html.embed header{padding-right:44px} html.embed header h1{font-size:1.15rem; margin:0}
+html.embed header p,html.embed .sum,html.embed .foot{display:none}
+html.embed .layout{flex:1; min-height:0; margin-top:8px; grid-template-columns:minmax(0,1fr) min(380px,46%); grid-template-rows:auto minmax(0,1fr); gap:10px 12px; align-items:stretch}
+html.embed .layout.nopanel{grid-template-columns:minmax(0,1fr); grid-template-areas:"ctrl" "stage"} html.embed .layout.nopanel .side{display:none}
+html.embed .ctrl{position:static; padding:0}
+html.embed .stage{display:flex; flex-direction:column; min-height:0}
+html.embed .mapbox{flex:1; aspect-ratio:auto; min-height:0}
+html.embed .side{overflow-y:auto; min-height:0}
+html.embed .hud .emb{display:inline-block}
+/* 좁은 embed(Confluence 본문 760) — 패널을 접지 않고 [조작부 / 그림 / 카드] 로 쌓는다. 행 높이는 비율로 고정해 내용 길이가 위치를 바꾸지 않는다 */
+@media (max-width:899px){
+  html.embed .layout, html.embed .layout.nopanel{grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1.7fr) minmax(0,1fr); grid-template-areas:"ctrl" "stage" "side"}
+  html.embed .layout.nopanel .side{display:flex}
+  html.embed .hud .emb{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <button id="theme" class="icon" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
+  <!-- TODO(ikken): h1 = 대상이 하는 일. 그 아래는 문단 lede 가 아니라 3줄 요약(ol.sum) — 문제 상황 / 핵심 규칙(굵게) / 결과. 전제는 패널 제목·foot 으로 -->
+  <h1>점을 거리 기준으로 묶기</h1>
+  <ol class="sum">
+    <li>평면 위 점 14개를 거리로 묶는다 (좌표 m, 원점 = 점들의 중심)</li>
+    <li><b>두 점 사이 거리가 <code>link_m</code> 이하이면 같은 묶음</b></li>
+    <li>이어진 점은 모두 한 묶음이 된다 — 단계별로 본다</li>
+  </ol>
+</header>
+<div class="layout" id="layout">
+  <div class="stage">
+    <!-- TODO(ikken): 패널 제목 2–4 단어 (+ 회색 보조 설명) -->
+    <div class="ptitle">점 배치<span>드래그 pan · 휠 zoom</span></div>
+    <div class="mapbox">
+      <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="hud"><button id="fit" title="전체 보기 (F)">Fit</button><button id="panel" class="emb" title="설명 패널 열기/닫기">패널</button></div>
+      <div class="scalebar" id="scalebar"></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <!-- 레이어 범례: 이 단계에서 그려지는 레이어만 (render 가 채움) -->
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="ctrl">
+    <div class="steps" id="steps"></div>
+    <div class="nav"><button id="prev" title="← · PageUp">← 이전 단계</button><button id="next" title="→ · PageDown">다음 단계 →</button></div>
+  </div>
+  <div class="side">
+    <div class="card" id="card"></div>
+    <div class="card info" id="info"><span class="ph">점에 마우스를 대면 id, 클릭하면 단계별 이력이 나옵니다.</span></div>
+  </div>
+</div>
+<!-- TODO(ikken): 출처 — 구현 파일:줄, 명세, 논문 절, 데이터 경로·버전, 파라미터 값 -->
+<p class="foot">데모 데이터 · 구현 예시 <code>cluster.py:12</code> · <code>link_m</code> 기본 2.0 m.</p>
+</div>
+
+<!-- TODO(ikken): 데이터는 python 으로 만들어 여기에. 손으로 숫자를 옮기지 않는다. -->
+<script type="application/json" id="data">
+{"points":[[-6.1,2.0],[-5.0,3.1],[-4.4,1.6],[-3.6,2.7],[-0.8,-0.4],[0.4,0.6],[1.1,-0.9],[0.2,-1.9],[4.2,3.4],[5.6,2.6],[6.3,3.9],[3.0,-3.6],[6.5,-2.5],[-2.6,-3.9]]}
+</script>
+<script>
+// ── 공통: 데이터 로더 (Confluence 변환 시 gzip+base64 도 읽는다) ─────────────────
+async function loadData(id){
+  const el=document.getElementById(id);
+  if(el.dataset.encoding==='gzip-base64'){
+    const bin=Uint8Array.from(atob(el.textContent.trim()),c=>c.charCodeAt(0));
+    const s=new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(s).text());
+  }
+  return JSON.parse(el.textContent);
+}
+// ── 공통: 테마 토글 auto → light → dark ─────────────────────────────────────────
+(function(){
+  const root=document.documentElement, KEY='ikken-theme', order=[null,'light','dark'];
+  const q=new URLSearchParams(location.search).get('theme');
+  let cur=null; try{cur=q||localStorage.getItem(KEY)}catch(e){}
+  const apply=()=>{cur?root.setAttribute('data-theme',cur):root.removeAttribute('data-theme')};
+  apply();
+  document.getElementById('theme').addEventListener('click',()=>{
+    cur=order[(order.indexOf(cur)+1)%order.length]; apply();
+    try{cur?localStorage.setItem(KEY,cur):localStorage.removeItem(KEY)}catch(e){}
+    window.dispatchEvent(new Event('themechange'));
+  });
+})();
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=0)=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const SVGNS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+
+(async function main(){
+const D=await loadData('data');
+
+// ── TODO(ikken): 모델 계산 — 실제 규칙을 그대로. 단계별 판정과 이력(hist)을 여기서 만든다 ──
+const P=D.points.map((p,i)=>({id:'p'+i,x:p[0],y:p[1],hist:[]}));
+const params={link_m:2.0}, DEFAULTS={...params};
+let M;
+function compute(){
+  const n=P.length, links=[];
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const d=Math.hypot(P[i].x-P[j].x,P[i].y-P[j].y); if(d<=params.link_m)links.push({a:i,b:j,d})}
+  const par=[...Array(n).keys()], f=i=>par[i]===i?i:(par[i]=f(par[i]));
+  links.forEach(l=>{par[f(l.a)]=f(l.b)});
+  const gid=P.map((_,i)=>f(i)), size={}; gid.forEach(g=>size[g]=(size[g]||0)+1);
+  P.forEach((p,i)=>{p.hist=[
+    {step:1,txt:'입력 점'},
+    {step:2,txt:`이웃 ${links.filter(l=>l.a===i||l.b===i).length}개 (≤ ${params.link_m} m)`},
+    {step:3,txt:size[gid[i]]>1?`묶음 ${gid[i]} (${size[gid[i]]}점)에 포함`:'혼자 남음 → 단독'}]});
+  M={links,gid,size,groups:Object.values(size).filter(s=>s>1).length,singles:Object.values(size).filter(s=>s===1).length};
+}
+compute();
+
+// ── TODO(ikken): 단계 정의. vis = 그 단계에서 그릴 레이어, legend = 그 단계 판정만 (없으면 null → 칸 숨김) ──
+const STEPS=[
+  {key:'입력', title:'점 14개를 놓는다',
+   body:()=>`<p>입력은 2D 점 목록입니다. 아직 아무 관계도 없습니다.</p>`,
+   stats:()=>[[P.length,'점'],[params.link_m.toFixed(1)+' m','link_m'],['—','묶음']],
+   legend:null, vis:{points:true}},
+  {key:'이웃', title:'가까운 두 점을 잇는다',
+   body:()=>`<p>모든 점 쌍의 거리를 재고 <code>link_m</code> 이하이면 선으로 잇습니다. 선은 "같은 묶음일 수 있다"는 뜻입니다.</p>`,
+   stats:()=>[[M.links.length,'연결'],[params.link_m.toFixed(1)+' m','link_m'],['—','묶음']],
+   legend:()=>[[M.links.length,'연결',`거리 ≤ ${params.link_m} m 인 점 쌍`]],
+   vis:{points:true,links:true}, knob:true},
+  {key:'묶음', title:'이어진 점을 한 묶음으로',
+   body:()=>`<p>선으로 이어진 점은 몇 단계를 거치든 모두 같은 묶음입니다(연결 요소). 선이 하나도 없는 점은 단독으로 남습니다.</p>`,
+   stats:()=>[[M.groups,'묶음'],[M.singles,'단독'],[P.length,'점']],
+   legend:()=>[[P.length-M.singles,'묶임','이웃이 있는 묶음에 들어간 점'],[M.singles,'단독','이웃이 없어 혼자 남은 점']],
+   vis:{points:true,links:true,groups:true}, knob:true},
+];
+
+// ── 그림: 데이터 좌표(y-up, m) → SVG(y-down). viewBox 로 pan/zoom ──────────────
+const svg=document.getElementById('map'), tip=document.getElementById('tip');
+const gGrid=el('g',{},svg), gGroups=el('g',{},svg), gLinks=el('g',{},svg), gPts=el('g',{},svg);
+const X=p=>p.x, Y=p=>-p.y;
+let vb={x:0,y:0,w:1,h:1}, sel=null, cur=0;
+function setVB(){svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`); drawScale()}
+function fit(){
+  const xs=P.map(X), ys=P.map(Y), pad=1.5;
+  let x0=Math.min(...xs)-pad,x1=Math.max(...xs)+pad,y0=Math.min(...ys)-pad,y1=Math.max(...ys)+pad;
+  const r=svg.clientWidth/svg.clientHeight||1.6, w=x1-x0, h=y1-y0;
+  if(w/h>r){const nh=w/r;y0-=(nh-h)/2;y1=y0+nh}else{const nw=h*r;x0-=(nw-w)/2;x1=x0+nw}
+  vb={x:x0,y:y0,w:x1-x0,h:y1-y0}; setVB(); draw();
+}
+function drawScale(){
+  const mpp=vb.w/svg.clientWidth, target=90*mpp, e=Math.pow(10,Math.floor(Math.log10(target)));
+  const len=[1,2,5,10].map(k=>k*e).filter(v=>v<=target).pop()||e;
+  document.getElementById('scalebar').innerHTML=`${len>=1?fmt(len,len<10&&len%1?1:0):len} m<i style="width:${len/mpp}px"></i>`;
+}
+function draw(){
+  const s=STEPS[cur], v=s.vis, px=vb.w/svg.clientWidth;  // px = 화면 1px 의 데이터 길이 (선 굵기 고정용)
+  gGrid.replaceChildren(); gGroups.replaceChildren(); gLinks.replaceChildren(); gPts.replaceChildren();
+  const step=1; for(let x=Math.floor(vb.x);x<=vb.x+vb.w;x+=step)el('line',{x1:x,x2:x,y1:vb.y,y2:vb.y+vb.h,stroke:css('--grid'),'stroke-width':px},gGrid);
+  for(let y=Math.floor(vb.y);y<=vb.y+vb.h;y+=step)el('line',{y1:y,y2:y,x1:vb.x,x2:vb.x+vb.w,stroke:css('--grid'),'stroke-width':px},gGrid);
+  if(v.groups){
+    P.forEach((p,i)=>{ if(M.size[M.gid[i]]>1) el('circle',{cx:X(p),cy:Y(p),r:params.link_m/2,fill:css('--grp-f'),stroke:'none'},gGroups)});
+  }
+  if(v.links) M.links.forEach(l=>el('line',{x1:X(P[l.a]),y1:Y(P[l.a]),x2:X(P[l.b]),y2:Y(P[l.b]),stroke:v.groups?css('--grp'):css('--link'),'stroke-width':2*px},gLinks));
+  P.forEach((p,i)=>{
+    const on=sel===i, grouped=v.groups&&M.size[M.gid[i]]>1;
+    const c=el('circle',{cx:X(p),cy:Y(p),r:(on?7:5)*px,fill:on?css('--hit'):grouped?css('--grp'):v.groups?css('--panel'):css('--ink'),
+      stroke:on?css('--hit'):grouped?css('--grp'):css('--base'),'stroke-width':1.5*px,'data-i':i,style:'cursor:pointer'},gPts);
+  });
+  const lg=[]; lg.push(`<span><span class="sw" style="border-color:var(--base);background:var(--ink);border-radius:50%;width:10px"></span>점</span>`);
+  if(v.links)lg.push(`<span><span class="sw" style="border-color:${v.groups?'var(--grp)':'var(--link)'};height:0;border-width:1px"></span>거리 ≤ link_m</span>`);
+  if(v.groups)lg.push(`<span><span class="sw" style="border-color:transparent;background:var(--grp-f)"></span>묶음 영역</span>`);
+  document.getElementById('legend').innerHTML=lg.join('');
+}
+
+// pan / zoom
+let drag=null;
+svg.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,vb:{...vb},moved:false};svg.setPointerCapture(e.pointerId);svg.classList.add('drag')});
+svg.addEventListener('pointermove',e=>{
+  if(drag){const k=vb.w/svg.clientWidth,dx=e.clientX-drag.x,dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
+    vb.x=drag.vb.x-dx*k; vb.y=drag.vb.y-dy*k; setVB(); tip.hidden=true; return}
+  const i=e.target.dataset&&e.target.dataset.i;
+  if(i==null){tip.hidden=true;return}
+  const p=P[+i], r=svg.parentElement.getBoundingClientRect();
+  tip.innerHTML=`<b>${p.id}</b><br>x ${fmt(p.x,1)} m · y ${fmt(p.y,1)} m`;
+  tip.hidden=false; tip.style.left=(e.clientX-r.left+12)+'px'; tip.style.top=(e.clientY-r.top+12)+'px';
+});
+svg.addEventListener('pointerup',e=>{
+  svg.classList.remove('drag'); const was=drag; drag=null;
+  if(was&&!was.moved){const i=e.target.dataset&&e.target.dataset.i; select(i==null?null:+i)}
+  else draw();
+});
+svg.addEventListener('wheel',e=>{
+  e.preventDefault(); const r=svg.getBoundingClientRect(), f=Math.exp(e.deltaY*0.0015);
+  const mx=vb.x+(e.clientX-r.left)/r.width*vb.w, my=vb.y+(e.clientY-r.top)/r.height*vb.h;
+  vb={x:mx-(mx-vb.x)*f,y:my-(my-vb.y)*f,w:vb.w*f,h:vb.h*f}; setVB(); draw();
+},{passive:false});
+svg.addEventListener('pointerleave',()=>tip.hidden=true);
+document.getElementById('fit').onclick=fit;
+
+// 선택 → 단계별 이력
+function select(i){
+  sel=i; draw();
+  const box=document.getElementById('info');
+  if(i==null){box.innerHTML='<span class="ph">점에 마우스를 대면 id, 클릭하면 단계별 이력이 나옵니다.</span>';return}
+  const p=P[i];
+  box.innerHTML=`<div class="k mono" style="font-size:.72rem;color:var(--muted);letter-spacing:.08em">선택한 점</div><b class="mono">${p.id}</b>
+    <table>${p.hist.map(h=>`<tr><td>STEP ${h.step} · ${STEPS[h.step-1].key}</td><td>${h.txt}</td></tr>`).join('')}
+    <tr><td>좌표</td><td class="mono">${fmt(p.x,1)}, ${fmt(p.y,1)} m</td></tr></table>`;
+}
+
+// 단계 전환 — 조작부(.ctrl)는 카드·그림과 분리돼 위치가 변하지 않는다. 단계 > 5 이면 5개씩 페이지
+const stepsEl=document.getElementById('steps'), PAGE=5, PAGED=STEPS.length>PAGE, stepLabel=i=>i+1;
+let grp=0;
+function drawSteps(){
+  stepsEl.replaceChildren(); stepsEl.classList.toggle('paged',PAGED);
+  if(!PAGED)stepsEl.style.setProperty('--n',STEPS.length);
+  const add=(txt,cls,title,fn,dis)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;if(title)b.title=title;
+    if(fn)b.onclick=fn; if(dis)b.disabled=true; stepsEl.appendChild(b); return b};
+  const last=Math.ceil(STEPS.length/PAGE)-1, rng=g=>`${stepLabel(g*PAGE)}–${stepLabel(Math.min(STEPS.length,(g+1)*PAGE)-1)}`;
+  if(PAGED)add('‹ 페이지','pg',grp>0?`이전 페이지 (단계 ${rng(grp-1)})`:'',()=>{grp--;drawSteps()},grp===0);
+  const n=PAGED?PAGE:STEPS.length;
+  for(let k=0;k<n;k++){const i=(PAGED?grp*PAGE:0)+k;
+    if(i>=STEPS.length){add('·','gap',null,null,true);continue}
+    const b=add(stepLabel(i),null,`${stepLabel(i)} · ${STEPS[i].key}`,()=>go(i)); b.setAttribute('aria-current',i===cur?'true':'false')}
+  if(PAGED)add('페이지 ›','pg',grp<last?`다음 페이지 (단계 ${rng(grp+1)})`:'',()=>{grp++;drawSteps()},grp===last);
+}
+function card(){
+  const s=STEPS[cur], lg=s.legend&&s.legend();
+  let h=`<div class="k">STEP ${cur+1} · ${s.key}</div><h2>${s.title}</h2>${s.body()}`;
+  h+=`<div class="stats">${s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('')}</div>`;
+  if(lg)h+=`<h3>이 단계의 판정</h3><ul class="dl">${lg.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('')}</ul>`;
+  if(s.knob)h+=`<div class="uf"><div class="row"><label for="k1">link_m</label><input id="k1" type="range" min="0.5" max="4" step="0.1" value="${params.link_m}"><output class="mono" id="k1v">${params.link_m.toFixed(1)} m</output><button id="k1r" title="기본값 ${DEFAULTS.link_m} m">reset</button></div><div class="hint">키우면 더 먼 점까지 이어져 묶음이 합쳐진다.</div></div>`;
+  document.getElementById('card').innerHTML=h;
+  if(s.knob){
+    const k=document.getElementById('k1');
+    const upd=v=>{params.link_m=+v;compute();draw();const o=document.getElementById('k1v');o.textContent=params.link_m.toFixed(1)+' m';
+      const st=document.querySelector('#card .stats'); st.innerHTML=s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('');
+      const dl=document.querySelector('#card .dl'); const lg2=s.legend&&s.legend(); if(dl&&lg2)dl.innerHTML=lg2.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('');
+      if(sel!=null)select(sel)};
+    k.oninput=e=>upd(e.target.value);
+    document.getElementById('k1r').onclick=()=>{k.value=DEFAULTS.link_m;upd(DEFAULTS.link_m)};
+  }
+}
+function go(i){
+  cur=Math.max(0,Math.min(STEPS.length-1,i));
+  grp=Math.floor(cur/PAGE); drawSteps();
+  document.getElementById('prev').disabled=cur===0; document.getElementById('next').disabled=cur===STEPS.length-1;
+  card(); draw(); if(sel!=null)select(sel);
+  try{history.replaceState(null,'','#step='+(cur+1))}catch(e){}
+}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.getElementById('panel').onclick=()=>document.getElementById('layout').classList.toggle('nopanel');
+addEventListener('keydown',e=>{
+  if(e.target.closest('input,select,textarea'))return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){go(cur+1);e.preventDefault()}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){go(cur-1);e.preventDefault()}
+  else if(e.key==='Home')go(0); else if(e.key==='End')go(STEPS.length-1);
+  else if(e.key==='f'||e.key==='F')fit(); else if(e.key==='Escape')select(null);
+});
+addEventListener('resize',()=>{fit()});
+addEventListener('themechange',draw);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+const h=+(location.hash.match(/step=(\d+)/)||[])[1];
+go(h?h-1:0); fit();
+})();
+</script>
+</body>
+</html>
