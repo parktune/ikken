@@ -7,7 +7,7 @@
 - type="module" · importmap · 동적 import( 가 있으면 실패 — Confluence CSP 가 막는다
 - Google Fonts <link> 제거, 그 밖의 외부 CSS 는 inline <style>
 - <script type="application/json" id=…> 데이터 → gzip+base64 (loadData() 가 DecompressionStream 으로 푼다)
-- embed 런타임 주입: iframe 자동 감지 · ?embed=0|1 · ?theme= · 150px 높이 판정 · fullscreen · 패널 기본 열림/좁으면 접기
+- embed 런타임 주입: iframe 자동 감지 · ?embed=0|1 · ?theme= · 150px 높이 판정 · fullscreen(테마 버튼과 한 상자) · 패널 기본 열림/좁으면 접기
 - 2 MB 이상이면 실패(종료 코드 1)
 - 점검용 page.csp-host.html: 엄격한 CSP meta + srcdoc iframe(폭 760, 높이 미지정)
 표준 라이브러리만 쓴다.
@@ -66,15 +66,16 @@ RUNTIME = r"""
     var b = document.getElementById('panel') || document.getElementById('b-panel');
     if (b) b.addEventListener('click', function(){ touched = true; }, true);
     if (document.fullscreenEnabled) {
-      /* 전체화면 버튼은 테마 버튼 바로 오른쪽 — 테마 버튼과 같은 모양(#theme 규칙 복사)으로, 테마 버튼 자리에 두고 테마 버튼을 왼쪽으로 민다 */
+      /* 전체화면 버튼은 테마 버튼과 한 상자로 붙인다 — 테마 버튼 자리에 묶음(#ikbar)을 두고 [테마 | 전체화면] 순서,
+         가운데 모서리는 각지게, 맞닿는 테두리는 한 줄만. 모양은 테마 버튼 것(#theme 규칙 복사 + 같은 class) */
       var f = document.createElement('button'); f.title = '전체화면'; f.setAttribute('aria-label', '전체화면');
       f.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>';
       f.onclick = function(){ document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen(); };
       var th = document.getElementById('theme');
       if (th) {
         f.id = 'ikfs'; f.className = th.className;
+        var css = '';
         try {
-          var css = '';
           for (var i = 0; i < document.styleSheets.length; i++) {
             var rules = document.styleSheets[i].cssRules || [];
             for (var j = 0; j < rules.length; j++) {
@@ -87,17 +88,20 @@ RUNTIME = r"""
               }
             }
           }
-          var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
         } catch (e) {}
-        th.parentNode.insertBefore(f, th.nextSibling);
-        var cs = getComputedStyle(th);
+        var cs = getComputedStyle(th), w = th.getBoundingClientRect().width || 34;
+        var bar = document.createElement('span'); bar.id = 'ikbar';
+        bar.style.cssText = 'display:inline-flex;align-items:stretch;z-index:5;flex:0 0 auto';
         if (cs.position === 'absolute' || cs.position === 'fixed') {
-          var w = th.getBoundingClientRect().width || 34, gap = 6;
-          f.style.position = cs.position; f.style.top = cs.top; f.style.right = cs.right;
-          th.style.right = 'calc(' + cs.right + ' + ' + (w + gap) + 'px)';
+          bar.style.position = cs.position; bar.style.top = cs.top; bar.style.right = cs.right;
           var par = th.parentElement;
-          if (par && par.tagName === 'HEADER') par.style.paddingRight = ((parseFloat(getComputedStyle(par).paddingRight) || 0) + w + gap) + 'px';
-        } else f.style.marginLeft = '6px';
+          if (par && par.tagName === 'HEADER') par.style.paddingRight = ((parseFloat(getComputedStyle(par).paddingRight) || 0) + w) + 'px';
+        }
+        css += '#ikbar>button{position:static!important;margin:0!important;top:auto!important;right:auto!important}' +
+               '#ikbar>#theme{border-top-right-radius:0!important;border-bottom-right-radius:0!important}' +
+               '#ikbar>#ikfs{border-top-left-radius:0!important;border-bottom-left-radius:0!important;border-left-width:0!important}';
+        var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+        th.parentNode.insertBefore(bar, th); bar.appendChild(th); bar.appendChild(f);
       } else {
         var hud = document.querySelector('.hud') || document.querySelector('header');
         if (hud) {

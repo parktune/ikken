@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-10-21 | 임베드의 테마 · 전체화면 버튼을 따로 두지 말고 한 상자로 붙여서 | `confluence.md` embed 런타임, `scripts/embed.py`(`#ikbar`) | TL 정책 안건 블록 |
 | 2026-10-21 | 패널에는 항상 타이틀 (신호등 상태 조합 페이지가 잘 만든 예) — 단계 설명·선택한 점 카드와 3D 장면에도 `.ptitle` | `style.md` 레이아웃(패널 제목 규칙 다듬기), `templates/walkthrough.html`(카드 `.ptitle`), `templates/view3d.html`(3D 장면 `.ptitle`) | 신호등 상태 조합 페이지 |
 | 2026-10-21 | 임베드 전체화면 버튼은 테마 버튼 바로 오른쪽에 | `confluence.md` embed 런타임, `scripts/embed.py`(`#ikfs`) | HD맵 레이어 속성 확장 페이지 |
 | 2026-10-21 | 회전 중심 표시를 점 대신 xyz 축 선분으로 | `interaction.md` 3D, `templates/view3d.html`(`placeFocus` · `--ax-*` 토큰) | HD맵 레이어 속성 확장 페이지 |
