@@ -84,6 +84,7 @@ code{background:var(--code); padding:1px 5px; border-radius:3px}
 .nav button{font:inherit; font-size:.9rem; padding:9px 0; border:1px solid var(--ink); background:transparent; color:var(--ink); border-radius:4px; cursor:pointer}
 .nav button:disabled{opacity:.35; cursor:default}
 .card{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:16px 18px; min-width:0}
+.card.pc{padding:0} .cbody{padding:14px 18px}   /* 제목 줄(.ptitle)이 있는 카드: 제목은 테두리까지, 본문만 안쪽 여백 */
 .card .k{font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-family:var(--mono)}
 .card h2{font-size:1.18rem; margin:.15rem 0 .5rem; line-height:1.35; text-wrap:balance}
 .card h3{font-size:.8rem; margin:1rem 0 .3rem; color:var(--muted); font-weight:500}
@@ -165,8 +166,9 @@ html.embed .hud .emb{display:inline-block}
     <div class="nav"><button id="prev" title="← · PageUp">← 이전 단계</button><button id="next" title="→ · PageDown">다음 단계 →</button></div>
   </div>
   <div class="side">
-    <div class="card" id="card"></div>
-    <div class="card info" id="info"><span class="ph">점에 마우스를 대면 id, 클릭하면 단계별 이력이 나옵니다.</span></div>
+    <!-- 패널마다 .ptitle — 사용자가 "단계 설명 패널"처럼 이름으로 부를 수 있게 -->
+    <div class="card pc"><div class="ptitle">단계 설명</div><div class="cbody" id="card"></div></div>
+    <div class="card pc"><div class="ptitle">선택한 점<span>마우스 = id · 클릭 = 단계별 이력</span></div><div class="cbody info" id="info"><span class="ph">점에 마우스를 대면 id, 클릭하면 단계별 이력이 나옵니다.</span></div></div>
   </div>
 </div>
 <!-- TODO(ikken): 출처 — 구현 파일:줄, 명세, 논문 절, 데이터 경로·버전, 파라미터 값 -->

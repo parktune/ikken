@@ -35,7 +35,10 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--font);ove
 main{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:minmax(0,1fr);height:100%;position:relative;overflow:hidden}
 main.nopanel{grid-template-columns:minmax(0,1fr)} main.nopanel aside{display:none}
 @media (max-width:760px){main{grid-template-columns:minmax(0,1fr) min(380px,52%)}}
-#view{position:relative;min-width:0;min-height:0;overflow:hidden}
+.vstage{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.ptitle{flex:none;font-size:.78rem;font-weight:600;letter-spacing:.02em;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptitle span{font-weight:400;color:var(--muted);margin-left:6px}
+#view{position:relative;flex:1;min-width:0;min-height:0;overflow:hidden}
 canvas#c{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:none}
 canvas#c.drag{cursor:grabbing}
 .hud{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -75,12 +78,16 @@ html.embed main.nopanel{grid-template-columns:minmax(0,1fr)}
 </head>
 <body>
 <main id="main">
+  <div class="vstage">
+  <!-- TODO(ikken): 패널 제목 2–4 단어 (+ 회색 보조 설명). 사용자가 "3D 장면 패널"처럼 이름으로 부를 수 있게 -->
+  <div class="ptitle">3D 장면<span>경사로 궤적 120점 · 높이 과장</span></div>
   <div id="view"><canvas id="c"></canvas><div id="tip"></div>
     <div class="hud"><button id="b-fit" title="전체 보기 (F)">전체</button><button id="b-top" title="위에서 보기">평면</button>
       <label title="높이 과장 배율">높이 ×<span id="zv">3</span><input id="zs" type="range" min="1" max="10" value="3"></label>
       <button id="b-panel" class="emb" title="패널 열기/닫기">패널</button></div>
     <button id="theme" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
     <div class="keys">드래그 회전 · 우클릭 드래그 이동 · 휠 줌 · WASD 수평 · Q/E 아래/위 · Shift 4배 · 더블클릭 포커스 · F 전체 · ←/→ 단계 · xyz 축 = 회전 중심</div>
+  </div>
   </div>
   <aside>
     <div class="nav"><button id="prev" title="이전 단계 (←)" aria-label="이전 단계">◀</button><button id="next" title="다음 단계 (→)" aria-label="다음 단계">▶</button><span class="st"><small id="sno"></small><span id="sname"></span></span></div>
