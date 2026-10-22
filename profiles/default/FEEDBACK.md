@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-10-22 | 시간·거리를 따라 쌓인 데이터(프레임별 라벨)는 단계형 대신 시간축(거리축) 바로 넘기며 각 시점이 왜 그 값인지 설명 | `patterns.md` 머리 (이해의 축) | command.driver 프레임별 라벨 |
 | 2026-10-21 | 임베드의 테마 · 전체화면 버튼을 따로 두지 말고 한 상자로 붙여서 | `confluence.md` embed 런타임, `scripts/embed.py`(`#ikbar`) | TL 정책 안건 블록 |
 | 2026-10-21 | 패널에는 항상 타이틀 (신호등 상태 조합 페이지가 잘 만든 예) — 단계 설명·선택한 점 카드와 3D 장면에도 `.ptitle` | `style.md` 레이아웃(패널 제목 규칙 다듬기), `templates/walkthrough.html`(카드 `.ptitle`), `templates/view3d.html`(3D 장면 `.ptitle`) | 신호등 상태 조합 페이지 |
 | 2026-10-21 | 임베드 전체화면 버튼은 테마 버튼 바로 오른쪽에 | `confluence.md` embed 런타임, `scripts/embed.py`(`#ikfs`) | HD맵 레이어 속성 확장 페이지 |
