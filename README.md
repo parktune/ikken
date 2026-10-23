@@ -70,7 +70,7 @@ requirements/            요구사항
 ### 개발용 (원본 저장소에서 바로 반영)
 
 ```bash
-git clone https://github.com/taeyoonB/ikken.git <경로>
+git clone https://github.com/parktune/ikken.git <경로>
 ln -s <경로> ~/.claude/skills/ikken      # 다음 세션부터 ikken@skills-dir 로 로드
 ```
 
@@ -79,7 +79,7 @@ ln -s <경로> ~/.claude/skills/ikken      # 다음 세션부터 ikken@skills-di
 ### 공유용
 
 ```
-/plugin marketplace add taeyoonB/ikken
+/plugin marketplace add parktune/ikken
 /plugin install ikken@ikken
 ```
 
