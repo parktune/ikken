@@ -19,6 +19,26 @@
 /ikken:feedback 단계 설명 카드에 이 단계에서 쓰는 파라미터 값을 항상 보여줘
 ```
 
+## 설치
+
+### 공유용
+
+```
+/plugin marketplace add parktune/ikken
+/plugin install ikken@ikken
+```
+
+설치본에서는 저장소를 고칠 수 없으니 처음 실행 때 사용자 프로필을 만든다. 피드백은 그 프로필에 쌓인다.
+
+### 개발용 (원본 저장소에서 바로 반영)
+
+```bash
+git clone https://github.com/parktune/ikken.git <경로>
+ln -s <경로> ~/.claude/skills/ikken      # 다음 세션부터 ikken@skills-dir 로 로드
+```
+
+이 방식에서 활성 프로필이 `default` 면 `/ikken:feedback` 이 저장소의 `profiles/default/` 를 직접 고치고 commit 한다.
+
 ## 진행 순서
 
 1. **프로필 → 규칙 읽기**: 기본 규칙(`profiles/default/guide/*.md`)을 읽고, 활성 프로필의 차이(`profile.md`)를 덮어쓴다. 처음 실행이면 프로필부터 정한다.
@@ -64,26 +84,6 @@ scripts/embed.py         Confluence 임베드 버전 변환 (표준 라이브러
 scripts/check.py         브라우저 점검 (playwright 필요, chrome-devtools MCP 대체)
 requirements/            요구사항
 ```
-
-## 설치
-
-### 개발용 (원본 저장소에서 바로 반영)
-
-```bash
-git clone https://github.com/parktune/ikken.git <경로>
-ln -s <경로> ~/.claude/skills/ikken      # 다음 세션부터 ikken@skills-dir 로 로드
-```
-
-이 방식에서 활성 프로필이 `default` 면 `/ikken:feedback` 이 저장소의 `profiles/default/` 를 직접 고치고 commit 한다.
-
-### 공유용
-
-```
-/plugin marketplace add parktune/ikken
-/plugin install ikken@ikken
-```
-
-설치본에서는 저장소를 고칠 수 없으니 처음 실행 때 사용자 프로필을 만든다. 피드백은 그 프로필에 쌓인다.
 
 ## Confluence 임베드
 
