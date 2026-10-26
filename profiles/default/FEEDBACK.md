@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-10-26 | 원본 뷰어 링크는 내부망 · 외부망 둘 다 (compare 골격으로 실제 보고서를 만들며) | `templates/compare.html`(`links` 여럿 · 사례 `note` 한 줄) | 방향 구간 Viterbi 보고서 |
 | 2026-10-26 | compare 골격 만들어 둬 | `templates/compare.html`(예시 데이터 · 방식 선택 · BEV · 막대 · player), `patterns.md` 표 · compare, `scripts/profile.py` TEMPLATES, `SKILL.md` 5, `README.md` | — |
 | 2026-10-26 | 사례 비교 보고서 스타일이 마음에 듦 + 막대만으로는 상황이 안 보이니 지도 · ego 상자 BEV 를 붙이고, 고른 매칭 로직의 결과를 도로 위에서 보게 · 장면 심층 페이지(조작 / 도식 / 표 / 막대 패널)도 마음에 듦 | `patterns.md` compare 유형, `interaction.md` 시간축(막대 · 방식 선택 · 여러 player) · 지도(가까이/전체), `style.md` 개체 범주 색 · 지도 도식(BEV) · segmented · 결과 표 | ego 차로 매칭 비교(Viterbi smoke) · 박스 매칭 successor 거리 |
 | 2026-10-22 | 시간·거리를 따라 쌓인 데이터(프레임별 라벨)는 단계형 대신 시간축(거리축) 바로 넘기며 각 시점이 왜 그 값인지 설명 | `patterns.md` 머리 (이해의 축) | command.driver 프레임별 라벨 |
