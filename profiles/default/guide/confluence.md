@@ -50,6 +50,9 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/embed.py" page.html --out x.html
 - **높이**: host 가 높이를 주지 않았다는 것이 **확실할 때만** 높이를 차지한다. 조건은 same-origin `frameElement` 가 있고 높이가 160 이하(CSS 기본값 150 이 그 신호)일 때다. 이때 `frameElement.style.height = 1000px` (400–1200 범위) 로 둔다.
   host 가 일부러 준 높이는 존중한다. 끝내 낮으면 위쪽에 "Height 1000 으로 설정하세요" 안내 줄을 띄운다.
 - **스크롤하지 않는다**: embed 모드에서 페이지 전체는 주어진 높이에 맞추고, 길어지는 영역(side 카드, aside)만 내부 스크롤한다. `min-height` 바닥값을 두지 않는다. 바닥값이 있으면 짧은 host 에서 스크롤이 생긴다.
+- **문서 높이는 iframe 높이로 고정한다 — 내용이 정하게 두지 않는다**: `html.embed, html.embed body{height:100%; overflow:hidden}` + 바깥 컨테이너 `height:100%` 의 flex/grid 로, 그림은 남는 높이를 `flex:1; min-height:0` 으로 채운다. 크기를 `vh` · `innerHeight` 로 계산하지 않는다.
+  - 이유: 문서 높이는 내용으로, 그림 크기는 `calc(100vh − …)` 로 정한 블록이 Confluence 에서 떨렸다 — host 가 iframe 높이를 내용에 맞추면 높이 → 그림 크기 → 내용 높이 → 높이로 물려 돈다(재현: 809 → 470 px 로 계속 줄어듦) (2026-10-26 ego_lane Viterbi 사례 블록 "지터링 현상"). 높이를 고정한 command.driver 블록은 같은 매크로에서 멀쩡했다.
+  - 점검: iframe 높이를 안쪽 `body.scrollHeight` 에 0.1 초마다 맞추는 host 로 열어 높이가 한 값에 머무는지 본다(`check.py` 의 `autoheight`).
 - **패널**: 기본으로 열려 있다. 열리면 오른쪽 세로 전부를 차지하고 그림은 남은 폭으로 줄어든다. 그림 위에 띄워 가리지 않는다. 닫으면 그림이 폭 전부를 쓴다.
   - 높이가 모자라면(430 미만) 기본으로 접고, 크기가 바뀌면 다시 판단한다. 사용자가 직접 여닫은 뒤에는 건드리지 않는다.
   - 폭이 900 미만이면 접어서 감추지 않는다(런타임이 `nopanel` 을 붙여도 템플릿 CSS 가 되살린다). 대신 `[조작부 / 그림 / 카드]` 로 쌓고 행 높이를 비율로 고정하거나, 위 「그림은 잘리지 않게」대로 탭으로 돌린다.

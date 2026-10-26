@@ -87,6 +87,11 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
 .links{font-size:.8rem;margin-top:6px;overflow-wrap:anywhere} .links a{color:var(--link)}
 .meta{color:var(--muted);margin:.1rem 0 .4rem;font-size:.84rem}
 .foot{font-size:.82rem;color:var(--muted);margin-top:28px}
+/* embed (guide/confluence.md): 문서 높이는 iframe 높이로 고정 — 내용 · vh 가 높이를 정하면 host 와 물려 떤다.
+   사례 목록은 .wrap 안에서만 스크롤. 사례 하나를 꽉 채우는 블록은 #cases → .case → .top → .bev 를 flex:1; min-height:0 으로 잇는다 */
+html.embed,html.embed body{height:100%;overflow:hidden}
+html.embed .wrap{max-width:none;height:100%;overflow-y:auto;padding:10px 12px 8px}
+html.embed h1{font-size:1.2rem;margin:0 0 .2rem} html.embed .bnote{display:none}
 </style>
 </head>
 <body>

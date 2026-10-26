@@ -9,7 +9,8 @@ playwright(python) 가 설치된 인터프리터로 실행한다:
   - 좁은 폭에서 가로 스크롤 여부 (scrollWidth > innerWidth)
   - #next 가 있으면 끝까지 실제 마우스로 클릭하며 #prev/#next · #steps 위치가 변하는지, 버튼 중심이 덮여 있지 않은지
     — 기본 폭과 한 열로 접히는 760 폭 둘 다 (접힌 레이아웃에서 그림 높이가 버튼을 밀던 사고, 2026-10-21)
-  - csp-host(iframe) 이면 iframe 폭 680 · 760 · 1000 · 1400 마다 같은 단계 점검 + 그림(.stage) 이 잘리지 않는지
+  - csp-host(iframe) 이면 auto-height host 흉내(iframe 높이를 안쪽 body.scrollHeight 에 맞추기)에서 높이가 한 값에 머무는지,
+    그리고 iframe 폭 680 · 760 · 1000 · 1400 마다 같은 단계 점검 + 그림(.stage) 이 잘리지 않는지
     (보이는 .stage 의 scrollHeight ≤ clientHeight)
 웹 서버를 띄우지 않는다.
 """
@@ -81,6 +82,18 @@ def main():
                 "visible_elements": fr.evaluate("() => [...document.body.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 20 && r.height > 20; }).length") if fr else 0,
                 "page_scrolls": fr.evaluate("() => document.scrollingElement.scrollHeight > innerHeight + 1") if fr else None,
             }
+            # host 가 iframe 높이를 내용에 맞추는 경우(auto-height) — 높이가 한 값에 머무는지.
+            # 문서 높이를 내용 · vh 가 정하면 높이 ↔ 내용이 물려 줄어들거나 떤다 (2026-10-26, confluence.md)
+            if fr:
+                ah = {}
+                for start in (1000, 700):   # 시작 높이 둘 — 한 값에서만 우연히 맞는 경우를 거른다
+                    hs = pg.evaluate("""start => new Promise(res => { const f = document.querySelector('iframe'), d = f.contentDocument, hs = [];
+                        f.style.height = start + 'px';
+                        setTimeout(() => { const t = setInterval(() => { const h = Math.max(d.body.scrollHeight, d.body.offsetHeight);
+                          if (Math.abs(h - f.clientHeight) > 1) f.style.height = h + 'px'; hs.push(f.clientHeight);
+                          if (hs.length >= 25) { clearInterval(t); res(hs); } }, 100); }, 300); })""", start)
+                    ah[start] = {"last": hs[-3:], "stable": all(abs(x - start) <= 1 for x in hs)}
+                rep["frame"]["autoheight"] = {"runs": ah, "stable": all(r["stable"] for r in ah.values())}
         def nav_pass(t, shots=False):
             """t = page 또는 frame. 처음 단계로 가서 끝까지 실제 클릭하며 조작부 위치·덮임을 잰다."""
             t.evaluate("() => document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'Home', bubbles: true}))")
@@ -139,7 +152,7 @@ def main():
                  and rep.get("steps_760", {}).get("nav_fixed", True)
                  and all(e["nav_fixed"] and e["stage_fits"] for e in rep.get("embed", {}).values()))
     if "frame" in rep:
-        rep["ok"] = rep["ok"] and rep["frame"]["visible_elements"] > 3
+        rep["ok"] = rep["ok"] and rep["frame"]["visible_elements"] > 3 and rep["frame"].get("autoheight", {}).get("stable", True)
     print(json.dumps(rep, ensure_ascii=False, indent=1))
 
 
