@@ -182,6 +182,9 @@ document.getElementById('mtab').innerHTML='<tr><th>방식</th>'+D.table.cols.map
 const runsOf=(fr,q)=>{const o=[];fr.forEach((f,i)=>{const l=q[i];if(o.length&&o[o.length-1][0]===l)o[o.length-1][2]=f;else o.push([l,f,f])});return o};
 const sid=l=>l?String(l).slice(-6):'—';
 let active=null;
+// 사례마다 똑같이 적용되는 보기 옵션(방식 · 보기 범위)은 페이지에 하나 — 한 카드에서 바꾸면 모든 카드가 따른다 (interaction.md 「공통」)
+const VIEW={method:REC, zoom:'near'}, SYNC=[];
+function setView(k,v){VIEW[k]=v; SYNC.forEach(f=>f())}
 function card(p){
   const sec=document.createElement('section'); sec.className='case'; sec.dataset.zone=p.zone; sec.dataset.left=p.has[REC]?'1':'0';
   const order=[]; V.forEach(([k])=>p.seq[k].forEach(l=>{if(l&&!order.includes(l))order.push(l)}));
@@ -218,41 +221,45 @@ function card(p){
   B.lanes.forEach(([id,j,pts])=>{b+=`<path class="cl${j?' j':''}" d="${pth(pts)}" style="stroke:${order.includes(id)?col(id):'var(--lane)'}"/>`});
   bev.innerHTML=b+'<g class="trd"></g><g class="lbls"></g><g class="egoL"></g><g class="sbg"></g>';
   const trd=bev.querySelector('.trd'), lblG=bev.querySelector('.lbls'), egoL=bev.querySelector('.egoL'), sbg=bev.querySelector('.sbg');
-  let method=REC, zoom='near', uNow=-1, timer=null;
+  let uNow=-1, timer=null;
   function paint(u){     // 궤적 점 = 고른 방식이 프레임마다 고른 개체 색
-    trd.innerHTML=B.ego.map(([x,y],k)=>{const l=p.seq[method][k];return `<circle class="td${l?'':' nil'}" cx="${x}" cy="${-y}" r="${.42*u}" style="stroke-width:${.12*u};${l?`fill:${col(l)}`:''}"><title>f${fr[k]} · ${esc(l||'—')}</title></circle>`}).join('');
-    const j=V.findIndex(([k])=>k===method); rowsel.setAttribute('y',j*(RH+G)-G/2); rls.forEach((t,i)=>t.classList.toggle('sel',i===j)); uNow=u}
+    trd.innerHTML=B.ego.map(([x,y],k)=>{const l=p.seq[VIEW.method][k];return `<circle class="td${l?'':' nil'}" cx="${x}" cy="${-y}" r="${.42*u}" style="stroke-width:${.12*u};${l?`fill:${col(l)}`:''}"><title>f${fr[k]} · ${esc(l||'—')}</title></circle>`}).join('');
+    const j=V.findIndex(([k])=>k===VIEW.method); rowsel.setAttribute('y',j*(RH+G)-G/2); rls.forEach((t,i)=>t.classList.toggle('sel',i===j)); uNow=u}
   function drawBev(i){
-    const [r,f,yaw]=B.ego[i], h=zoom==='near'?13:hf, cx=zoom==='near'?r:mr, cy=zoom==='near'?f+3:mf, u=h/26;   // u ≈ 화면 15px
+    const [r,f,yaw]=B.ego[i], h=VIEW.zoom==='near'?13:hf, cx=VIEW.zoom==='near'?r:mr, cy=VIEW.zoom==='near'?f+3:mf, u=h/26;   // u ≈ 화면 15px
     bev.setAttribute('viewBox',`${cx-h} ${-(cy+h)} ${2*h} ${2*h}`);
-    const sl=zoom==='near'?5:10, sx=cx-h+1.2*u, sy=-(cy-h)-1.2*u;
+    const sl=VIEW.zoom==='near'?5:10, sx=cx-h+1.2*u, sy=-(cy-h)-1.2*u;
     sbg.innerHTML=`<line class="sb" x1="${sx}" x2="${sx+sl}" y1="${sy}" y2="${sy}" style="stroke-width:${.18*u}"/><text class="sbt" x="${sx}" y="${sy-.5*u}" style="font-size:${.75*u}px">${sl} m</text>`;
     if(u!==uNow) paint(u);
     const t=yaw*Math.PI/180, F=[Math.sin(t),Math.cos(t)], R=[Math.cos(t),-Math.sin(t)], Q=(a,l)=>[r+F[0]*a+R[0]*l, f+F[1]*a+R[1]*l];
     const cs=[Q(XF,-HW),Q(XF,HW),Q(XR,HW),Q(XR,-HW)], tri=[Q(XF-.3,0),Q(XF-1.3,-.5),Q(XF-1.3,.5)];
     egoL.innerHTML=`<polygon class="car" points="${cs.map(([x,y])=>`${x},${-y}`).join(' ')}"/>`+cs.map(([x,y])=>`<circle class="pt" cx="${x}" cy="${-y}" r=".28"/>`).join('')+
       `<polygon class="pt" points="${tri.map(([x,y])=>`${x},${-y}`).join(' ')}"/><circle class="o" cx="${r}" cy="${-f}" r=".4"/>`;
-    const l=p.seq[method][i], lx=r+HW+1.4, ly=-f+.4*u;
+    const l=p.seq[VIEW.method][i], lx=r+HW+1.4, ly=-f+.4*u;
     bev.querySelectorAll('.band').forEach(e=>e.classList.toggle('on',e.dataset.l===l));
     lblG.innerHTML=(l?`<rect x="${lx}" y="${ly-.95*u}" width="${1.1*u}" height="${1.1*u}" rx="${.15*u}" style="fill:${col(l)}"/>`:'')+
       `<text class="lbl" x="${l?lx+1.5*u:lx}" y="${ly}" style="font-size:${1.3*u}px;stroke-width:${.35*u}px">${esc(l?sid(l):'없음')}</text>`;
   }
   function show(i){i=Math.max(0,Math.min(n-1,i)); rng.value=i; const f=fr[i], X=xs(f+.5);
     cur.setAttribute('x1',X); cur.setAttribute('x2',X); lab.textContent=`f${f}`; drawBev(i);
-    atf.innerHTML=V.map(([k,nm])=>{const l=p.seq[k][i];return `<div class="v${k===method?' sel':''}"><span>${esc(nm)}</span><span class="lid"><i style="background:${col(l)}"></i>${esc(l||'—')}</span></div>`}).join('');
+    atf.innerHTML=V.map(([k,nm])=>{const l=p.seq[k][i];return `<div class="v${k===VIEW.method?' sel':''}"><span>${esc(nm)}</span><span class="lid"><i style="background:${col(l)}"></i>${esc(l||'—')}</span></div>`}).join('');
     if(D.links&&D.links.length){const us=D.links.map(([nm,t])=>[nm,t.replace('{case}',encodeURIComponent(p.id)).replace('{frame}',f)]);
       links.innerHTML=`원본 f${f}: `+us.map(([nm,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(nm)}</a>`).join(' · ')+` <span class="mono" style="color:var(--muted)">${esc(us[0][1])}</span>`}}
-  function setMethod(k){method=k; sec.querySelectorAll('.lgc button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k?'true':'false')); uNow=-1; show(+rng.value)}
+  function sync(){      // 공유 보기 옵션이 바뀌면 — 버튼 눌림과 그림을 다시
+    sec.querySelectorAll('.lgc button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===VIEW.method?'true':'false'));
+    sec.querySelectorAll('.zoom button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.z===VIEW.zoom?'true':'false'));
+    uNow=-1; show(+rng.value)}
+  SYNC.push(sync);
   function play(on){if(on==null)on=!timer; clearInterval(timer); timer=null; playB.textContent='▷';
     if(on){playB.textContent='❚❚'; timer=setInterval(()=>{if(+rng.value>=n-1){play(false);return} show(+rng.value+1)},120)}}
   const me={show,rng,play};
-  sec.querySelectorAll('.lgc button').forEach(b=>b.onclick=()=>{active=me;setMethod(b.dataset.k)});
-  sec.querySelectorAll('.zoom button').forEach(z=>z.onclick=()=>{active=me;zoom=z.dataset.z;sec.querySelectorAll('.zoom button').forEach(y=>y.setAttribute('aria-pressed',y===z?'true':'false'));uNow=-1;show(+rng.value)});
+  sec.querySelectorAll('.lgc button').forEach(b=>b.onclick=()=>{active=me;setView('method',b.dataset.k)});
+  sec.querySelectorAll('.zoom button').forEach(z=>z.onclick=()=>{active=me;setView('zoom',z.dataset.z)});
   rng.oninput=()=>{active=me;show(+rng.value)};
   q('.pv').onclick=()=>{active=me;show(+rng.value-1)}; q('.nx').onclick=()=>{active=me;show(+rng.value+1)}; playB.onclick=()=>{active=me;play()};
   let drag=false; const seek=e=>{const r=strip.getBoundingClientRect(); show(Math.floor(((e.clientX-r.left)/r.width*W-LW)/(W-LW-6)*n))};
   strip.addEventListener('pointerdown',e=>{const r=strip.getBoundingClientRect(), fx=(e.clientX-r.left)/r.width*W, fy=(e.clientY-r.top)/r.height*H; active=me;
-    if(fx<LW){const j=Math.floor(fy/(RH+G)); if(V[j])setMethod(V[j][0]); return}      // 행 이름 = 방식 선택
+    if(fx<LW){const j=Math.floor(fy/(RH+G)); if(V[j])setView('method',V[j][0]); return}      // 행 이름 = 방식 선택
     drag=true; strip.setPointerCapture(e.pointerId); seek(e)});
   strip.addEventListener('pointermove',e=>{if(drag)seek(e)}); strip.addEventListener('pointerup',()=>drag=false);
   show(Math.max(0,fr.indexOf(e0)-2));

@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-10-26 | 사례마다 똑같이 적용되는 옵션(지금 규칙 vs Viterbi, 대상 가까이 vs 구간 전체)은 패널마다 따로가 아니라 공유 | `interaction.md` 공통 · 시간축, `templates/compare.html`(`VIEW` · `setView`) | ego_lane Viterbi 사례 블록 · 방향 구간 Viterbi 보고서 |
 | 2026-10-26 | Confluence 임베드 블록에 지터링 — 문서 높이를 내용이, 그림 크기를 vh 가 정해 host 높이와 물려 돌았다 | `confluence.md` 스크롤 · 높이 고정, `templates/compare.html`(embed CSS), `scripts/check.py`(`autoheight`) | ego_lane Viterbi 사례 블록 |
 | 2026-10-26 | 원본 뷰어 링크는 내부망 · 외부망 둘 다 (compare 골격으로 실제 보고서를 만들며) | `templates/compare.html`(`links` 여럿 · 사례 `note` 한 줄) | 방향 구간 Viterbi 보고서 |
 | 2026-10-26 | compare 골격 만들어 둬 | `templates/compare.html`(예시 데이터 · 방식 선택 · BEV · 막대 · player), `patterns.md` 표 · compare, `scripts/profile.py` TEMPLATES, `SKILL.md` 5, `README.md` | — |
