@@ -88,7 +88,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" status --json
 
 1. 맞는 골격이 있으면 프로필 해석을 거쳐 복사해 시작한다 — 프로필 골격이 있으면 그것을, `tokens.css` 가 있으면 기본 토큰 뒤에 덧붙인다.
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" template <walkthrough|explorer|overview|view3d> <저장 경로>.html
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" template <walkthrough|explorer|overview|view3d|compare> <저장 경로>.html
    ```
    토큰, 테마 토글, 폰트, 레이아웃, 데이터 로더가 이미 들어 있다. `profile.md` 가 골격 코드와 다른 동작(예: 회전 방향)을 정하면 복사한 코드를 그에 맞게 고친다.
    맞는 골격이 없으면 레이아웃·패널은 주제에 맞게 새로 짜고, 공통 부품만 골격에서 가져온다: 토큰, 테마 토글, `loadData`, 패널 제목, embed CSS 규칙.

@@ -29,7 +29,7 @@ DEFAULT = ROOT / "profiles" / "default"
 HOME = Path(os.environ.get("IKKEN_HOME") or Path.home() / ".claude" / "ikken")
 CONFIG = HOME / "config.json"
 GUIDES = ["explanation", "interaction", "style", "patterns", "verify", "confluence"]
-TEMPLATES = ["walkthrough", "explorer", "overview", "view3d"]
+TEMPLATES = ["walkthrough", "explorer", "overview", "view3d", "compare"]
 NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
 
 PROFILE_MD = """# {name} 프로필

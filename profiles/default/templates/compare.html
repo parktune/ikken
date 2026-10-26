@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- TODO(ikken): 2–4 단어 제목 -->
+<title>매칭 방식 비교</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+/* ikken compare — 사례 비교 보고서: 요약 → 방법 → 결과 표 → 사례 카드(BEV 도식 + 시간축 막대 + player). 색은 토큰으로만. */
+:root{
+  --bg:#E6ECEF; --panel:#F7F9FA; --ink:#15212B; --muted:#56676F; --line:#C3CFD6; --grid:#E3EAEE; --code:#EEF2F4;
+  --hit:#D23D26; --ok:#0a7d55; --rem:#B57611; --link:#17808A; --lane:#9AA8B2; --none:#E3EAEE;
+  /* 개체 범주 색 — 사례 안에서 처음 나온 순서 (style.md 「개체 범주 색」) */
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --font:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,"IBM Plex Sans KR",monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0E151B; --panel:#151F28; --ink:#DCE5EB; --muted:#8B9AA5; --line:#293744; --grid:#1A2530; --code:#101921;
+  --hit:#FF6B50; --ok:#37c98f; --rem:#E2A843; --link:#4CC0C8; --lane:#4B5A66; --none:#1A2530;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E151B; --panel:#151F28; --ink:#DCE5EB; --muted:#8B9AA5; --line:#293744; --grid:#1A2530; --code:#101921;
+  --hit:#FF6B50; --ok:#37c98f; --rem:#E2A843; --link:#4CC0C8; --lane:#4B5A66; --none:#1A2530;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+input[type=range]{accent-color:var(--ink)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--font);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 56px}
+header{position:relative;padding-right:48px}
+h1{font-size:clamp(1.55rem,3.1vw,2.25rem);line-height:1.2;margin:0 0 .4rem;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:1.2rem;margin:2rem 0 .6rem}
+.sum{padding-left:1.3rem;margin:.5rem 0 0;max-width:84ch} .sum li{margin:.15rem 0} .sum li::marker{font-family:var(--mono);color:var(--muted)}
+code,.mono{font-family:var(--mono);font-size:.86em} code{background:var(--code);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
+#theme{position:absolute;top:4px;right:0}
+.icon{width:34px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;cursor:pointer}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 18px;margin:10px 0}
+.ptitle{font-size:.78rem;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--grid)} .ptitle span{font-weight:400;color:var(--muted);margin-left:6px}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;font-size:.86rem}
+td,th{padding:5px 8px;border-bottom:1px solid var(--grid);text-align:left;white-space:nowrap} th{color:var(--muted);font-weight:500}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)} tr.best td{background:rgba(23,128,138,.12)}
+.formula{font-family:var(--mono);font-size:.86rem;background:var(--code);padding:8px 10px;border-radius:4px;margin:.4rem 0;line-height:1.7;overflow-x:auto}
+.note{font-size:.8rem;color:var(--muted);margin:.4rem 0 0}
+/* segmented — 필터 · 방식 선택 · 보기 범위 */
+.segrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;align-items:center} .segrow>b{font-size:.78rem;font-weight:500;color:var(--muted);margin-right:2px}
+.seg{display:inline-flex;flex-wrap:wrap} .seg button{font:inherit;font-size:.8rem;padding:3px 10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;margin-left:-1px}
+.seg button:first-child{border-radius:4px 0 0 4px;margin-left:0} .seg button:last-child{border-radius:0 4px 4px 0} .seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink);position:relative}
+.seg.sm button{font-size:.74rem;padding:1px 9px}
+.cnt{font-size:.8rem;color:var(--muted)}
+/* 사례 카드 */
+.case{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:12px 0}
+.case h3{font-size:.95rem;margin:0 0 .2rem}
+.tag{font:500 .74rem var(--font);padding:1px 7px;border-radius:3px;margin-left:6px;border:1px solid currentColor;white-space:nowrap} .tag.ok{color:var(--ok)} .tag.rem{color:var(--rem)} .tag.mu{color:var(--muted)}
+.top{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:12px 18px;align-items:start;margin:4px 0 8px}
+@media (max-width:760px){.top{grid-template-columns:1fr}}
+.chips{font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;margin:.2rem 0 .4rem} .chips b{font-weight:500;color:var(--ink)}
+.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;margin:2px 0 6px} .lg span{font-family:var(--mono)}
+.lg i,.lid i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.atf{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 16px;font-size:.84rem}
+@media (max-width:640px){.atf{grid-template-columns:1fr}}
+.atf .v{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--grid);padding:2px 0} .atf .v span:first-child{color:var(--muted)} .lid{font-family:var(--mono)}
+.atf .v.sel{font-weight:700;border-bottom-color:var(--ink)} .atf .v.sel span:first-child{color:var(--ink)}
+/* BEV 도식 (style.md 「지도 도식」) */
+.bev{width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--grid);border-radius:4px}
+.bev .band{fill:none;stroke-linecap:butt;stroke-linejoin:round;opacity:.22} .bev .band.on{opacity:.6}
+.bev .cl{fill:none;stroke-width:.22;opacity:.9} .bev .cl.j{stroke-dasharray:.9 .6}
+.bev .car{fill:var(--ink);fill-opacity:.12;stroke:var(--ink);stroke-width:.18} .bev .pt{fill:var(--ink)} .bev .o{fill:var(--panel);stroke:var(--ink);stroke-width:.2}
+.bev .td{stroke:var(--panel)} .bev .td.nil{fill:var(--panel);stroke:var(--muted)}
+.bev .lbl{font-family:var(--mono);font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--panel)} .bev .sb{stroke:var(--ink)} .bev .sbt{font-family:var(--font);fill:var(--muted)}
+.bnote{font-size:.74rem;color:var(--muted);margin:3px 0 0}
+/* 시간축 막대 + player (interaction.md 「시간축」) */
+.strip{width:100%;height:auto;display:block;cursor:pointer;touch-action:none;user-select:none}
+.rl{font:11px var(--font);fill:var(--muted)} .rl.sel{fill:var(--ink);font-weight:700} .tk{font:10px var(--mono);fill:var(--muted)}
+.cur{stroke:var(--ink);stroke-width:2} .ev{fill:var(--ink)} .rowsel{fill:var(--ink);opacity:.08}
+.player{display:flex;align-items:center;gap:8px;margin:8px 0 4px} .pair{display:inline-flex;flex:none}
+.pair .icon:first-child{border-radius:4px 0 0 4px} .pair .icon:last-child{border-radius:0 4px 4px 0;border-left:0}
+.player .icon{width:32px;height:28px;font-size:.8rem}
+.player input[type=range]{flex:1;min-width:0} .flab{font-family:var(--mono);font-size:.84rem;min-width:5.5em;text-align:right;font-variant-numeric:tabular-nums}
+.links{font-size:.8rem;margin-top:6px;overflow-wrap:anywhere} .links a{color:var(--link)}
+.foot{font-size:.82rem;color:var(--muted);margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <button id="theme" class="icon" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
+  <!-- TODO(ikken): 제목 · 3줄 요약 (숫자는 데이터에서 계산해 넣는다 — 아래 summary()) -->
+  <h1>차로 매칭 방식 비교 — 갈림에서 튀는 차로</h1>
+  <ol class="sum" id="sum"></ol>
+</header>
+
+<h2>1. 방법</h2>
+<section class="card">
+  <div class="ptitle">방법 패널<span>무엇을 어떤 규칙으로 비교했나</span></div>
+  <!-- TODO(ikken): 데이터 출처 · 비교 조건 · 수식 · 규칙 표 -->
+  <ul>
+    <li>프레임마다 ego 원점에서 가장 가까운 차로를 고른다(<b>프레임별</b>).</li>
+    <li><b>평활</b>은 같은 비용에 차로 연결을 더해 경로 전체에서 비용 합이 가장 작은 차로열을 고른다.</li>
+  </ul>
+  <div class="formula">비용 = Σ<sub>프레임</sub> d<sub>원점</sub>² + Σ<sub>프레임 사이</sub> 전이(이전 차로 → 이번 차로)</div>
+</section>
+
+<h2>2. 결과</h2>
+<section class="card">
+  <div class="ptitle">유형별 패널<span>방식마다 튄 사례 수</span></div>
+  <div class="tw"><table id="ztab"></table></div>
+</section>
+<section class="card">
+  <div class="ptitle">방식별 패널<span>권하는 방식은 옅게 강조</span></div>
+  <div class="tw"><table id="mtab"></table></div>
+  <!-- TODO(ikken): 표의 각 열이 무엇을 세는지 한 줄 -->
+  <p class="note">튄 곳 = 짧게 다른 차로에 갔다가 돌아오거나 옆 차로를 거친 구간.</p>
+</section>
+
+<h2>3. 사례</h2>
+<div class="segrow" id="fz"><b>유형</b><span class="seg"></span></div>
+<div class="segrow" id="fs"><b>권하는 방식에서</b><span class="seg"></span></div>
+<p class="cnt" id="cnt"></p>
+<p class="note">방식 버튼(또는 막대의 행 이름)으로 도식에 보여 줄 방식을 고른다 · 색 = 사례 안에서 개체마다 하나 · ←/→ 1 프레임 · Shift 10 프레임 · Space 재생 (마지막으로 만진 사례)</p>
+<div id="cases"></div>
+
+<!-- TODO(ikken): 출처 · 스크립트 · 날짜 -->
+<p class="foot">예시 데이터 · ikken compare 골격.</p>
+</div>
+
+<!-- 데이터: methods [[key,이름]] · rec(권하는 방식 key) · zones {key:이름} · table {cols, rows[{name, rec?, vals}]} ·
+     cases[{id, title, zone, frames[], seq{method:[개체 id|null]}, event[f0,f1], has{method:bool}, flag?,
+            bev{c[x,y], half, lanes[[id, 점선?, [[x,y]…]]], ego[[x,y,yaw°(오른쪽 +)]…], box[앞, 뒤(−), 반폭]}}] · link(현재 프레임 URL 틀, {case} {frame}) | null.
+     좌표는 기준 프레임의 대상 위치 원점 · 진행 방향 = +y 인 지역 좌표(m). -->
+<script type="application/json" id="data">{"methods":[["frame","프레임별"],["smooth","평활"]],"rec":"smooth","zones":{"split":"갈림","lc":"차로 변경"},"table":{"cols":["튄 곳","차로 변경 유지"],"rows":[{"name":"프레임별","vals":[1,"1/1"]},{"name":"평활","rec":true,"vals":[0,"1/1"]}]},"cases":[{"id":"case_split","title":"갈림 시작","zone":"split","frames":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40],"seq":{"frame":["P","P","P","P","P","P","P","P","P","P","P","P","P","P","P","P","A","A","A","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B"],"smooth":["P","P","P","P","P","P","P","P","P","P","P","P","P","P","P","P","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B","B"]},"event":[16,18],"has":{"frame":true,"smooth":false},"bev":{"c":[1.7,6.0],"half":42.0,"lanes":[["P",false,[[0,-60],[0,-50],[0,-40],[0,-30],[0,-20],[0,-10],[0,0]]],["A",false,[[0,0],[0,10],[0,20],[0,30],[0,40],[0,50],[0,60]]],["B",false,[[0.0,0],[0.08,3],[0.32,6],[0.7,9],[1.17,12],[1.7,15],[2.23,18],[2.7,21],[3.08,24],[3.32,27],[3.4,30],[3.4,33],[3.4,36],[3.4,39],[3.4,42],[3.4,45],[3.4,48],[3.4,51],[3.4,54],[3.4,57],[3.4,60]]],["S",false,[[-3.4,-60],[-3.4,-50],[-3.4,-40],[-3.4,-30],[-3.4,-20],[-3.4,-10],[-3.4,0],[-3.4,10],[-3.4,20],[-3.4,30],[-3.4,40],[-3.4,50],[-3.4,60]]],["J",true,[[-3.4,60],[-3.4,75],[-8,85]]]],"ego":[[0.0,-24.0,0.0],[0.0,-22.5,0.0],[0.0,-21.0,0.0],[0.0,-19.5,0.0],[0.0,-18.0,0.0],[0.0,-16.5,0.0],[0.0,-15.0,0.0],[0.0,-13.5,0.0],[0.0,-12.0,0.0],[0.0,-10.5,0.0],[0.0,-9.0,0.0],[0.0,-7.5,0.0],[0.0,-6.0,0.0],[0.0,-4.5,0.0],[0.0,-3.0,0.0],[0.0,-1.5,0.0],[0.0,0.0,0.4],[0.02,1.5,1.6],[0.08,3.0,3.1],[0.18,4.5,4.5],[0.32,6.0,5.8],[0.49,7.5,7.0],[0.69,9.0,8.0],[0.91,10.5,8.8],[1.15,12.0,9.4],[1.41,13.5,9.7],[1.67,15.0,9.9],[1.93,16.5,9.7],[2.18,18.0,9.4],[2.42,19.5,8.8],[2.65,21.0,8.0],[2.84,22.5,7.0],[3.01,24.0,5.8],[3.15,25.5,4.5],[3.25,27.0,3.1],[3.31,28.5,1.6],[3.33,30.0,0.4],[3.33,31.5,0.0],[3.33,33.0,0.0],[3.33,34.5,0.0],[3.33,36.0,0.0]],"box":[3.9,-0.8,0.95]}},{"id":"case_lc","title":"왼쪽 차로에서 변경","zone":"lc","frames":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40],"seq":{"frame":["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A"],"smooth":["S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","S","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A"]},"event":[19,19],"has":{"frame":false,"smooth":false},"bev":{"c":[-1.7,22.0],"half":44.0,"lanes":[["P",false,[[0,-60],[0,-50],[0,-40],[0,-30],[0,-20],[0,-10],[0,0]]],["A",false,[[0,0],[0,10],[0,20],[0,30],[0,40],[0,50],[0,60]]],["B",false,[[0.0,0],[0.08,3],[0.32,6],[0.7,9],[1.17,12],[1.7,15],[2.23,18],[2.7,21],[3.08,24],[3.32,27],[3.4,30],[3.4,33],[3.4,36],[3.4,39],[3.4,42],[3.4,45],[3.4,48],[3.4,51],[3.4,54],[3.4,57],[3.4,60]]],["S",false,[[-3.4,-60],[-3.4,-50],[-3.4,-40],[-3.4,-30],[-3.4,-20],[-3.4,-10],[-3.4,0],[-3.4,10],[-3.4,20],[-3.4,30],[-3.4,40],[-3.4,50],[-3.4,60]]],["J",true,[[-3.4,60],[-3.4,75],[-8,85]]]],"ego":[[-3.4,-10.0,0.0],[-3.4,-8.4,0.0],[-3.4,-6.8,0.0],[-3.4,-5.2,0.0],[-3.4,-3.6,0.0],[-3.4,-2.0,0.0],[-3.4,-0.4,0.0],[-3.4,1.2,0.0],[-3.4,2.8,0.0],[-3.4,4.4,0.0],[-3.4,6.0,0.0],[-3.4,7.6,0.0],[-3.4,9.2,4.3],[-3.16,10.8,8.6],[-2.91,12.4,8.6],[-2.67,14.0,8.6],[-2.43,15.6,8.6],[-2.19,17.2,8.6],[-1.94,18.8,8.6],[-1.7,20.4,8.6],[-1.46,22.0,8.6],[-1.21,23.6,8.6],[-0.97,25.2,8.6],[-0.73,26.8,8.6],[-0.49,28.4,8.6],[-0.24,30.0,8.6],[0.0,31.6,4.3],[0.0,33.2,0.0],[0.0,34.8,0.0],[0.0,36.4,0.0],[0.0,38.0,0.0],[0.0,39.6,0.0],[0.0,41.2,0.0],[0.0,42.8,0.0],[0.0,44.4,0.0],[0.0,46.0,0.0],[0.0,47.6,0.0],[0.0,49.2,0.0],[0.0,50.8,0.0],[0.0,52.4,0.0],[0.0,54.0,0.0]],"box":[3.9,-0.8,0.95]}}],"link":null}</script>
+<script>
+async function loadData(id){
+  const el=document.getElementById(id);
+  if(el.dataset.encoding==='gzip-base64'){
+    const bin=Uint8Array.from(atob(el.textContent.trim()),c=>c.charCodeAt(0));
+    const s=new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(s).text());
+  }
+  return JSON.parse(el.textContent);
+}
+(function(){
+  const root=document.documentElement, KEY='ikken-theme', order=[null,'light','dark'];
+  let cur=null; try{cur=new URLSearchParams(location.search).get('theme')||localStorage.getItem(KEY)}catch(e){}
+  const apply=()=>{cur?root.setAttribute('data-theme',cur):root.removeAttribute('data-theme')}; apply();
+  document.getElementById('theme').addEventListener('click',()=>{cur=order[(order.indexOf(cur)+1)%order.length];apply();
+    try{cur?localStorage.setItem(KEY,cur):localStorage.removeItem(KEY)}catch(e){}});
+})();
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+(async function(){
+const D=await loadData('data'), V=D.methods, REC=D.rec, P=D.cases, ZK=Object.keys(D.zones);
+const NAME=Object.fromEntries(V);
+
+// ── 요약 · 결과 표 ────────────────────────────────────────────
+function summary(){   // TODO(ikken): 주제의 결론 3줄 — 숫자는 P 에서 센다
+  const left=k=>P.filter(p=>p.has[k]).length;
+  return [`사례 ${P.length}개 중 <b>${esc(NAME[V[0][0]])}</b> 방식은 ${left(V[0][0])}개에서 튄다.`,
+          `<b>${esc(NAME[REC])}</b> 방식에서는 ${left(REC)}개다.`,
+          `사례 카드에서 방식을 바꿔 가며 도로 위 매칭을 비교한다.`];
+}
+document.getElementById('sum').innerHTML=summary().map(s=>`<li>${s}</li>`).join('');
+document.getElementById('ztab').innerHTML='<tr><th>유형</th><th class="n">사례</th>'+V.map(([k,n])=>`<th class="n">${esc(n)}</th>`).join('')+'</tr>'+
+  ZK.map(z=>{const a=P.filter(p=>p.zone===z);return `<tr><td>${esc(D.zones[z])}</td><td class="n">${a.length}</td>`+V.map(([k])=>`<td class="n">${a.filter(p=>p.has[k]).length}</td>`).join('')+'</tr>'}).join('');
+document.getElementById('mtab').innerHTML='<tr><th>방식</th>'+D.table.cols.map(c=>`<th class="n">${esc(c)}</th>`).join('')+'</tr>'+
+  D.table.rows.map(r=>`<tr class="${r.rec?'best':''}"><td>${esc(r.name)}</td>`+r.vals.map(v=>`<td class="n">${esc(v)}</td>`).join('')+'</tr>').join('');
+
+// ── 사례 카드 ────────────────────────────────────────────────
+const runsOf=(fr,q)=>{const o=[];fr.forEach((f,i)=>{const l=q[i];if(o.length&&o[o.length-1][0]===l)o[o.length-1][2]=f;else o.push([l,f,f])});return o};
+const sid=l=>l?String(l).slice(-6):'—';
+let active=null;
+function card(p){
+  const sec=document.createElement('section'); sec.className='case'; sec.dataset.zone=p.zone; sec.dataset.left=p.has[REC]?'1':'0';
+  const order=[]; V.forEach(([k])=>p.seq[k].forEach(l=>{if(l&&!order.includes(l))order.push(l)}));
+  const col=l=>{if(!l)return 'var(--none)';const i=order.indexOf(l);return i>=0&&i<8?`var(--s${i+1})`:'var(--lane)'};
+  const fr=p.frames, n=fr.length, [e0,e1]=p.event;
+  sec.innerHTML=`<h3><span class="mono">${esc(p.id)}</span> · ${esc(p.title)} <span class="tag mu">${esc(D.zones[p.zone])}</span>${p.has[REC]?'<span class="tag rem">남음</span>':'<span class="tag ok">없음</span>'}${p.flag?`<span class="tag mu">${esc(p.flag)}</span>`:''}</h3>
+   <div class="segrow lgc"><b>방식</b><span class="seg">${V.map(([k,nm])=>`<button data-k="${k}" aria-pressed="${k===REC}">${esc(nm)}</button>`).join('')}</span></div>
+   <div class="top"><div><span class="seg sm zoom"><button data-z="near" aria-pressed="true">대상 가까이</button><button data-z="far" aria-pressed="false">구간 전체</button></span>
+     <svg class="bev" aria-label="BEV 도식"></svg>
+     <!-- TODO(ikken): 도식 기호 설명 한 줄 -->
+     <p class="bnote">위 = 기준 프레임의 진행 방향 · 띠 = 차로(3.2 m) · 점선 중심선 = 교차로 안 · 궤적 점 색 = 고른 방식이 그 프레임에 고른 차로 · 진한 띠 = 지금 프레임의 차로 · 상자 = 차량(○ 기준점, ● 모서리)</p></div>
+    <div><div class="chips">${V.map(([k,nm])=>`<span>${esc(nm)} <b>${p.has[k]?'튐':'—'}</b></span>`).join('')}</div>
+     <div class="lg">${order.map(l=>`<span><i style="background:${col(l)}"></i>${esc(l)}</span>`).join('')}</div>
+     <div class="atf"></div></div></div>
+   <svg class="strip" aria-label="프레임별 결과 막대"></svg>
+   <div class="player"><span class="pair"><button class="icon pv" title="이전 프레임 (←)" aria-label="이전 프레임">◀</button><button class="icon nx" title="다음 프레임 (→)" aria-label="다음 프레임">▶</button></span>
+    <button class="icon play" title="재생/정지 (Space)" aria-label="재생">▷</button>
+    <input type="range" min="0" max="${n-1}" aria-label="프레임"><span class="flab"></span></div>
+   <div class="links"></div>`;
+  const q=s=>sec.querySelector(s), strip=q('.strip'), rng=q('input'), lab=q('.flab'), atf=q('.atf'), links=q('.links'), bev=q('.bev'), playB=q('.play');
+  // 막대: 행 = 방식, 구간 색 = 개체
+  const W=980, LW=130, RH=16, G=4, H=V.length*(RH+G)+18, f0=fr[0], xs=f=>LW+(f-f0)/n*(W-LW-6);
+  let s=`<rect class="rowsel" x="0" width="${W}" height="${RH+G}"/><rect class="ev" x="${xs(e0).toFixed(1)}" y="${V.length*(RH+G)}" width="${Math.max(3,xs(e1+1)-xs(e0)).toFixed(1)}" height="3"><title>사건 구간</title></rect>`;
+  V.forEach(([k,nm],j)=>{const y=j*(RH+G); s+=`<text x="0" y="${y+RH-4}" class="rl">${esc(nm)}</text>`;
+    runsOf(fr,p.seq[k]).forEach(([l,a,b])=>{s+=`<rect x="${xs(a).toFixed(1)}" y="${y}" width="${Math.max(1.5,xs(b+1)-xs(a)-1).toFixed(1)}" height="${RH}" rx="2" style="fill:${col(l)}"><title>${esc(nm)} · ${esc(l||'—')} · f${a}–${b}</title></rect>`})});
+  s+=`<text x="${LW}" y="${H-2}" class="tk">f${f0}</text><text x="${W-6}" y="${H-2}" class="tk" text-anchor="end">f${fr[n-1]}</text><line class="cur" y1="-2" y2="${H-14}"/>`;
+  strip.setAttribute('viewBox',`0 0 ${W} ${H}`); strip.innerHTML=s;
+  const cur=strip.querySelector('.cur'), rowsel=strip.querySelector('.rowsel'), rls=[...strip.querySelectorAll('.rl')];
+  // BEV: 지역 좌표 (x 오른쪽, y 앞) m → svg (x, −y)
+  const B=p.bev, hf=B.half, [mr,mf]=B.c, [XF,XR,HW]=B.box, pth=pts=>'M'+pts.map(([x,y])=>`${x} ${-y}`).join('L');
+  let b='';
+  B.lanes.forEach(([id,j,pts])=>{b+=`<path class="band" data-l="${esc(id)}" d="${pth(pts)}" style="stroke:${order.includes(id)?col(id):'var(--lane)'};stroke-width:3.2"><title>${esc(id)}</title></path>`});
+  B.lanes.forEach(([id,j,pts])=>{b+=`<path class="cl${j?' j':''}" d="${pth(pts)}" style="stroke:${order.includes(id)?col(id):'var(--lane)'}"/>`});
+  bev.innerHTML=b+'<g class="trd"></g><g class="lbls"></g><g class="egoL"></g><g class="sbg"></g>';
+  const trd=bev.querySelector('.trd'), lblG=bev.querySelector('.lbls'), egoL=bev.querySelector('.egoL'), sbg=bev.querySelector('.sbg');
+  let method=REC, zoom='near', uNow=-1, timer=null;
+  function paint(u){     // 궤적 점 = 고른 방식이 프레임마다 고른 개체 색
+    trd.innerHTML=B.ego.map(([x,y],k)=>{const l=p.seq[method][k];return `<circle class="td${l?'':' nil'}" cx="${x}" cy="${-y}" r="${.42*u}" style="stroke-width:${.12*u};${l?`fill:${col(l)}`:''}"><title>f${fr[k]} · ${esc(l||'—')}</title></circle>`}).join('');
+    const j=V.findIndex(([k])=>k===method); rowsel.setAttribute('y',j*(RH+G)-G/2); rls.forEach((t,i)=>t.classList.toggle('sel',i===j)); uNow=u}
+  function drawBev(i){
+    const [r,f,yaw]=B.ego[i], h=zoom==='near'?13:hf, cx=zoom==='near'?r:mr, cy=zoom==='near'?f+3:mf, u=h/26;   // u ≈ 화면 15px
+    bev.setAttribute('viewBox',`${cx-h} ${-(cy+h)} ${2*h} ${2*h}`);
+    const sl=zoom==='near'?5:10, sx=cx-h+1.2*u, sy=-(cy-h)-1.2*u;
+    sbg.innerHTML=`<line class="sb" x1="${sx}" x2="${sx+sl}" y1="${sy}" y2="${sy}" style="stroke-width:${.18*u}"/><text class="sbt" x="${sx}" y="${sy-.5*u}" style="font-size:${.75*u}px">${sl} m</text>`;
+    if(u!==uNow) paint(u);
+    const t=yaw*Math.PI/180, F=[Math.sin(t),Math.cos(t)], R=[Math.cos(t),-Math.sin(t)], Q=(a,l)=>[r+F[0]*a+R[0]*l, f+F[1]*a+R[1]*l];
+    const cs=[Q(XF,-HW),Q(XF,HW),Q(XR,HW),Q(XR,-HW)], tri=[Q(XF-.3,0),Q(XF-1.3,-.5),Q(XF-1.3,.5)];
+    egoL.innerHTML=`<polygon class="car" points="${cs.map(([x,y])=>`${x},${-y}`).join(' ')}"/>`+cs.map(([x,y])=>`<circle class="pt" cx="${x}" cy="${-y}" r=".28"/>`).join('')+
+      `<polygon class="pt" points="${tri.map(([x,y])=>`${x},${-y}`).join(' ')}"/><circle class="o" cx="${r}" cy="${-f}" r=".4"/>`;
+    const l=p.seq[method][i], lx=r+HW+1.4, ly=-f+.4*u;
+    bev.querySelectorAll('.band').forEach(e=>e.classList.toggle('on',e.dataset.l===l));
+    lblG.innerHTML=(l?`<rect x="${lx}" y="${ly-.95*u}" width="${1.1*u}" height="${1.1*u}" rx="${.15*u}" style="fill:${col(l)}"/>`:'')+
+      `<text class="lbl" x="${l?lx+1.5*u:lx}" y="${ly}" style="font-size:${1.3*u}px;stroke-width:${.35*u}px">${esc(l?sid(l):'없음')}</text>`;
+  }
+  function show(i){i=Math.max(0,Math.min(n-1,i)); rng.value=i; const f=fr[i], X=xs(f+.5);
+    cur.setAttribute('x1',X); cur.setAttribute('x2',X); lab.textContent=`f${f}`; drawBev(i);
+    atf.innerHTML=V.map(([k,nm])=>{const l=p.seq[k][i];return `<div class="v${k===method?' sel':''}"><span>${esc(nm)}</span><span class="lid"><i style="background:${col(l)}"></i>${esc(l||'—')}</span></div>`}).join('');
+    if(D.link){const u=D.link.replace('{case}',encodeURIComponent(p.id)).replace('{frame}',f); links.innerHTML=`원본 f${f}: <a href="${u}" target="_blank" rel="noopener">열기</a> <span class="mono" style="color:var(--muted)">${esc(u)}</span>`}}
+  function setMethod(k){method=k; sec.querySelectorAll('.lgc button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k?'true':'false')); uNow=-1; show(+rng.value)}
+  function play(on){if(on==null)on=!timer; clearInterval(timer); timer=null; playB.textContent='▷';
+    if(on){playB.textContent='❚❚'; timer=setInterval(()=>{if(+rng.value>=n-1){play(false);return} show(+rng.value+1)},120)}}
+  const me={show,rng,play};
+  sec.querySelectorAll('.lgc button').forEach(b=>b.onclick=()=>{active=me;setMethod(b.dataset.k)});
+  sec.querySelectorAll('.zoom button').forEach(z=>z.onclick=()=>{active=me;zoom=z.dataset.z;sec.querySelectorAll('.zoom button').forEach(y=>y.setAttribute('aria-pressed',y===z?'true':'false'));uNow=-1;show(+rng.value)});
+  rng.oninput=()=>{active=me;show(+rng.value)};
+  q('.pv').onclick=()=>{active=me;show(+rng.value-1)}; q('.nx').onclick=()=>{active=me;show(+rng.value+1)}; playB.onclick=()=>{active=me;play()};
+  let drag=false; const seek=e=>{const r=strip.getBoundingClientRect(); show(Math.floor(((e.clientX-r.left)/r.width*W-LW)/(W-LW-6)*n))};
+  strip.addEventListener('pointerdown',e=>{const r=strip.getBoundingClientRect(), fx=(e.clientX-r.left)/r.width*W, fy=(e.clientY-r.top)/r.height*H; active=me;
+    if(fx<LW){const j=Math.floor(fy/(RH+G)); if(V[j])setMethod(V[j][0]); return}      // 행 이름 = 방식 선택
+    drag=true; strip.setPointerCapture(e.pointerId); seek(e)});
+  strip.addEventListener('pointermove',e=>{if(drag)seek(e)}); strip.addEventListener('pointerup',()=>drag=false);
+  show(Math.max(0,fr.indexOf(e0)-2));
+  return sec;
+}
+const box=document.getElementById('cases');
+P.slice().sort((a,b)=>ZK.indexOf(a.zone)-ZK.indexOf(b.zone)||(b.has[REC]-a.has[REC])).forEach(p=>box.appendChild(card(p)));
+// 필터
+let fz='all', fs='all';
+function apply(){let k=0; box.querySelectorAll('.case').forEach(c=>{const on=(fz==='all'||c.dataset.zone===fz)&&(fs==='all'||(fs==='left')===(c.dataset.left==='1'));c.hidden=!on;k+=on});
+  document.getElementById('cnt').textContent=`${k}개 표시`}
+function seg(id,items,get,set){const S=document.querySelector(`#${id} .seg`);
+  items.forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.dataset.k=k;b.setAttribute('aria-pressed',get()===k?'true':'false');
+    b.onclick=()=>{set(k);S.querySelectorAll('button').forEach(z=>z.setAttribute('aria-pressed',z===b?'true':'false'));apply()};S.appendChild(b)})}
+seg('fz',[['all',`전체 ${P.length}`],...ZK.map(z=>[z,`${D.zones[z]} ${P.filter(p=>p.zone===z).length}`])],()=>fz,k=>fz=k);
+seg('fs',[['all','전체'],['left','남은 사례'],['gone','없어진 사례']],()=>fs,k=>fs=k);
+apply();
+addEventListener('keydown',e=>{
+  if(!active||e.target.closest('input,textarea,select'))return;          // range 에 포커스가 있으면 브라우저가 처리
+  if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault(); const d=(e.shiftKey?10:1)*(e.key==='ArrowRight'?1:-1); active.show(+active.rng.value+d)}
+  else if(e.key===' '&&!e.target.closest('button')){e.preventDefault(); active.play()}
+});
+})();
+</script>
+</body>
+</html>

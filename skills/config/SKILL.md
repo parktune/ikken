@@ -8,7 +8,7 @@ argument-hint: "[use <이름> | new <이름> [--from <원본>] | edit | delete <
 
 ikken 의 규칙·골격은 **프로필** 단위로 쌓인다.
 
-- `default` — 저장소의 `profiles/default/` (배포자가 다듬어 배포하는 기본 스타일). 규칙 6개(`guide/*.md`) · 골격 4개(`templates/*.html`) · 이력(`FEEDBACK.md`) 전부가 여기 있다.
+- `default` — 저장소의 `profiles/default/` (배포자가 다듬어 배포하는 기본 스타일). 규칙 6개(`guide/*.md`) · 골격 5개(`templates/*.html`) · 이력(`FEEDBACK.md`) 전부가 여기 있다.
 - 사용자 프로필 — `~/.claude/ikken/profiles/<이름>/`. **기본과 다른 부분만** 둔다.
   - `profile.md` — 기본 위에 덮어쓰는 규칙. 절 이름은 guide 파일 이름(`explanation` · `interaction` · `style` · `patterns` · `verify` · `confluence`) + `진행 (SKILL)`.
   - `tokens.css` (선택) — 색·글꼴 토큰 덮어쓰기. 골격을 복사할 때 기본 토큰 뒤에 `<style id="ikken-profile-tokens">` 로 붙는다.
