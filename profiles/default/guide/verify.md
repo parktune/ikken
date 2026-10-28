@@ -24,7 +24,7 @@
    - `check.py` 는 이 모두를 한다 (`steps` · `steps_760` · `embed`). 넓은 폭에서만 통과하고 접힌 폭에서 버튼이 밀린 사고가 있었다 (2026-10-21).
 5. 키보드 단축키를 `press_key` 로 확인한다.
 6. 폭 390px(`resize_page` 또는 `emulate` viewport)에서 `document.documentElement.scrollWidth <= innerWidth` 인지, 레이아웃이 한 열로 접히는지 본다.
-7. 이미지가 있으면 하나를 실제로 눌러 lightbox 가 화면을 덮는지, 오버레이가 함께 커졌는지, `Esc` 로 닫히는지 본다.
+7. 이미지가 있으면 하나를 실제로 눌러 lightbox 가 화면을 덮는지, 오버레이가 함께 커졌는지, `Esc` 로 닫히는지, 휠로 커서 기준 확대 · 축소되고 끌어 이동되는지(선 굵기 그대로, 뒤 페이지 스크롤 없음), 끈 뒤 손을 떼도 닫히지 않는지 본다.
 8. 주요 버튼이 덮여 있지 않은지 `document.elementFromPoint(버튼 중심)` 이 그 버튼인지 확인한다.
 9. 확인이 끝나면 `close_page` 로 닫는다.
 

@@ -71,7 +71,7 @@
 | legend | flex wrap, `.8rem` muted, 항목 사이 `gap:6px 16px` |
 | callout | `.note`(accent-soft 배경 + 왼쪽 3px accent 선) / `.warn`(warn 계열) — overview 에서만 |
 | tag | 작은 pill, 의미 색 글자 + 그 색의 투명 배경 |
-| lightbox | `position:fixed; inset:0` 덮개(`rgba(0,0,0,.86)`, 다크에서도 같음), 가운데에 이미지 + 오버레이를 **화면에 맞춘 최대 크기**(종횡비 유지, 약 96vw × 88vh)로, 위에 흰 캡션 한 줄(패널 제목 · 사례 id), 오른쪽 위 `×` 아이콘 버튼. 고배율이면 `image-rendering:pixelated` 를 원본 이미지와 같게 |
+| lightbox | `position:fixed; inset:0` 덮개(`rgba(0,0,0,.86)`, 다크에서도 같음), 가운데에 이미지 + 오버레이를 **화면에 맞춘 최대 크기**(종횡비 유지, 약 96vw × 88vh)로, 위에 흰 캡션 한 줄(패널 제목 · 사례 id), 오른쪽 위 `×` 아이콘 버튼. 고배율이면 `image-rendering:pixelated` 를 원본 이미지와 같게. 확대는 무대(`overflow:hidden`) 안의 감싸개 div 의 left · top · width · height 를 바꿔서 한다(CSS transform 대신 — 이미지가 다시 그려져 선명). 이동은 이미지가 무대를 벗어나 빈 곳이 보이지 않게 가둔다. SVG 오버레이의 `stroke-width` · `stroke-dasharray` 는 배율로 나눈다. 원본 해상도를 넘겨 키우면 `image-rendering:pixelated`. 커서는 맞춤 크기에서 `zoom-in`, 확대 중 `grab` / `grabbing`. 휠 리스너는 `{passive:false}` 로 뒤 페이지가 스크롤되지 않게 |
 | scalebar | 지도 오른쪽 아래, mono `.72rem`, muted 2px 선 |
 | theme 버튼 | 오른쪽 위 34×30 아이콘 버튼, 반원 아이콘 |
 | 상태 선택 버튼 | 시각적 상태(신호등 점등, 차로 화살표 등)를 고르는 버튼은 **그 상태를 그린 큰 아이콘**이 주인공이고 글씨는 아래에 작게 둔다. 선택 표시는 배경 반전이 아니라 굵은 테두리로 해서 아이콘 색을 지킨다 (2026-10-14 "글씨보다 아이콘을 크게해서 선택할 수 있게") |
