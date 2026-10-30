@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-10-30 | codex-bridge 사용 안내 스타일이 가이드로 마음에 듦 — 이런 템플릿도 있으면 | `templates/guide.html`(신규), `patterns.md` 표 · guide, `style.md` 레이아웃 · 예외(hero · radius · 그림자) · 코드 블록, `interaction.md` 공통(복사 버튼 · 목차 표시), `scripts/profile.py` TEMPLATES, `SKILL.md` 5, `README.md`, `skills/config` · `skills/feedback` 골격 수 | codex-bridge-guide.html |
 | 2026-10-28 | 확대 화면(lightbox)에서 마우스 휠로 확대 · 축소, 끌어 이동 | guide/interaction.md · style.md · verify.md | tl_box_undist_check.html |
 | 2026-10-28 | html 에 이미지를 붙이면 누르면 화면에서 크게 보이게(lightbox) — 오버레이 포함 | `interaction.md` 공통, `style.md` lightbox, `verify.md` 7 | box_undist 정렬 점검 |
 | 2026-10-26 | 사례마다 똑같이 적용되는 옵션(지금 규칙 vs Viterbi, 대상 가까이 vs 구간 전체)은 패널마다 따로가 아니라 공유 | `interaction.md` 공통 · 시간축, `templates/compare.html`(`VIEW` · `setView`) | ego_lane Viterbi 사례 블록 · 방향 구간 Viterbi 보고서 |

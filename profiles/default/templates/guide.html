@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- TODO(ikken): 2–4 단어 제목 -->
+<title>example-cli 사용 안내</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+/* ikken guide — 사용 안내서. hero 띠 → [고정 목차 | 카드 절]. 코드 블록마다 복사 버튼. */
+:root{
+  --bg:#f3f6fa; --panel:#ffffff; --panel2:#fcfdff; --fg:#172033; --muted:#5b667a; --line:#dce3ed; --th:#f7f9fc;
+  --accent:#2459c4; --accent-soft:#edf3ff; --ok:#087f75; --ok-soft:#e7f6f2; --warn:#b5730f; --warn-soft:#fff4df;
+  --code-bg:#edf0f5; --pre-bg:#101827; --pre-fg:#e9f0fb; --pre-btn:#202b3d; --pre-btn-line:#46536a;
+  --hero-a:#101827; --hero-b:#1c3156; --hero-glow:#315ab6; --hero-fg:#ffffff; --hero-muted:#d5e0f3; --hero-k:#a9c5ff;
+  --shadow:0 12px 32px rgba(20,33,58,.07);
+  --font:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",monospace;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0d131c; --panel:#141c27; --panel2:#18212e; --fg:#dfe7f2; --muted:#94a1b4; --line:#263245; --th:#18212e;
+  --accent:#7fa8ff; --accent-soft:#1a2740; --ok:#4cc0b0; --ok-soft:#14302c; --warn:#e2a843; --warn-soft:#33281a;
+  --code-bg:#1e2837; --pre-bg:#0a0f17; --pre-fg:#e3ebf7; --pre-btn:#1a2433; --pre-btn-line:#3a475c;
+  --hero-a:#070b12; --hero-b:#14233f; --hero-glow:#26478f; --hero-fg:#f2f6fc; --hero-muted:#c3d0e4; --hero-k:#9dbaf5;
+  --shadow:0 12px 32px rgba(0,0,0,.28); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d131c; --panel:#141c27; --panel2:#18212e; --fg:#dfe7f2; --muted:#94a1b4; --line:#263245; --th:#18212e;
+  --accent:#7fa8ff; --accent-soft:#1a2740; --ok:#4cc0b0; --ok-soft:#14302c; --warn:#e2a843; --warn-soft:#33281a;
+  --code-bg:#1e2837; --pre-bg:#0a0f17; --pre-fg:#e3ebf7; --pre-btn:#1a2433; --pre-btn-line:#3a475c;
+  --hero-a:#070b12; --hero-b:#14233f; --hero-glow:#26478f; --hero-fg:#f2f6fc; --hero-muted:#c3d0e4; --hero-k:#9dbaf5;
+  --shadow:0 12px 32px rgba(0,0,0,.28); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 var(--font);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:.12em .38em;border-radius:5px;overflow-wrap:anywhere}
+
+/* hero 띠 — guide 유형에서만 허용되는 그라디언트 (style.md) */
+header{background:radial-gradient(ellipse at 85% 0,var(--hero-glow) 0,transparent 42%),linear-gradient(125deg,var(--hero-a),var(--hero-b));color:var(--hero-fg);padding:56px 22px 50px}
+.hero,.layout,footer{max-width:1100px;margin:0 auto}
+.hero{position:relative}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--hero-k);font-weight:500}
+.hero h1{font-size:clamp(1.9rem,4.6vw,3.1rem);line-height:1.15;max-width:800px;margin:10px 0 16px;letter-spacing:-.03em;text-wrap:balance;padding-right:48px}
+.hero p{max-width:760px;color:var(--hero-muted);font-size:1.06rem;margin:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+.chip{border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:4px 12px;color:var(--hero-fg);font-size:.84rem}
+#theme{position:absolute;top:0;right:0;width:34px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.3);background:transparent;color:var(--hero-fg);border-radius:6px;cursor:pointer}
+
+/* [목차 | 본문] */
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:30px;padding:32px 22px 64px}
+.nav{position:sticky;top:20px;align-self:start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.nav strong{display:block;margin:0 0 8px;font-size:.92rem}
+.nav a{display:block;color:var(--muted);text-decoration:none;padding:4px 0 4px 10px;margin-left:-10px;border-left:2px solid transparent;font-size:.9rem}
+.nav a:hover{color:var(--accent)}
+.nav a[aria-current="true"]{color:var(--fg);border-left-color:var(--accent);font-weight:500}
+main{min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 28px;margin-bottom:22px;box-shadow:var(--shadow);scroll-margin-top:16px}
+.card h2{font-size:1.45rem;line-height:1.3;margin:0 0 12px;letter-spacing:-.02em;text-wrap:balance}
+h3{font-size:1.05rem;margin:24px 0 8px}
+p{margin:10px 0}
+.lead{color:var(--muted);font-size:1.03rem}
+.small{font-size:.9rem;color:var(--muted)}
+
+/* callout — 왼쪽 선 + 옅은 배경. 기본(파랑) · .ok(초록) · .warn(주황) */
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 10px 10px 0;margin:18px 0}
+.note.ok{border-color:var(--ok);background:var(--ok-soft)}
+.note.warn{border-color:var(--warn);background:var(--warn-soft)}
+
+/* 구조 그림 — 노드 3열 + 가운데 화살표 */
+.diagram{border:1px solid var(--line);border-radius:12px;padding:18px 20px 20px;background:var(--panel2);overflow-x:auto}
+.ptitle{font-weight:700;font-size:.92rem;padding-bottom:8px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.ptitle span{font-weight:400;color:var(--muted);margin-left:8px;font-size:.84rem}
+.flow{min-width:560px;display:grid;grid-template-columns:1fr 1.05fr 1fr;gap:12px;align-items:center;text-align:center}
+.node{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px 12px}
+.node b{display:block}
+.node small{display:block;color:var(--muted);margin-top:4px;line-height:1.5}
+.node.a{border-color:var(--ok);background:var(--ok-soft)}
+.node.b{border-color:var(--accent);background:var(--accent-soft)}
+.arrows{display:flex;flex-direction:column;gap:6px}
+.arrow{color:var(--accent);font-weight:700;font-size:.95rem}
+.arrow.back{color:var(--ok)}
+.caption{color:var(--muted);font-size:.9rem;margin-top:12px}
+
+/* 번호 단계 · 타일 · 표 */
+.steps{counter-reset:step;list-style:none;padding:0}
+.steps li{counter-increment:step;position:relative;padding:0 0 16px 46px}
+.steps li::before{content:counter(step);position:absolute;left:0;top:1px;width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:700 .9rem/30px var(--mono);text-align:center}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.tile b{display:block;margin-bottom:4px}
+.tile p{margin:0;color:var(--muted);font-size:.94rem}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);background:var(--th);font-weight:600}
+td code{white-space:nowrap}
+
+/* 코드 블록 — 위 여백 띠에 복사 버튼 (첫 줄을 가리지 않게) */
+pre{position:relative;overflow:auto;background:var(--pre-bg);color:var(--pre-fg);border-radius:12px;padding:40px 18px 16px;line-height:1.55;font:.86rem/1.55 var(--mono)}
+pre code{background:none;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal}
+.copy{position:absolute;top:6px;right:8px;width:28px;height:28px;display:grid;place-items:center;padding:0;border:1px solid var(--pre-btn-line);border-radius:7px;background:var(--pre-btn);color:var(--pre-fg);cursor:pointer;opacity:.82}
+.copy:hover,.copy:focus-visible{opacity:1}
+.copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.copy svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.copy[data-state="ok"]{color:#9be5d1;border-color:#348b78;opacity:1}
+.copy[data-state="err"]{color:#ffc98a;border-color:#a66a2b;opacity:1}
+
+footer{padding:0 22px 40px;color:var(--muted);font-size:.88rem}
+
+@media (max-width:820px){
+  .layout{grid-template-columns:1fr;padding-top:18px}
+  .nav{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+  .nav strong{grid-column:1/-1}
+  .card{padding:20px}
+  .grid{grid-template-columns:1fr}
+}
+@media (max-width:640px){.flow{min-width:0;grid-template-columns:1fr}}
+@media (max-width:520px){header{padding:40px 16px 36px}.layout{padding-inline:16px}footer{padding-inline:16px}.nav{grid-template-columns:1fr}}
+@media print{body{background:#fff}.layout{display:block;padding:0}.nav,#theme,.copy{display:none}.card{box-shadow:none;break-inside:avoid}header{padding:28px 20px;print-color-adjust:exact}a{color:inherit}}
+
+/* Confluence embed — 문서형은 내부 스크롤 하나로. 목차는 위로 접는다 */
+html.embed,html.embed body{height:100%;overflow:hidden}
+html.embed body{overflow-y:auto}
+html.embed header{padding:28px 16px 24px}
+html.embed .layout{grid-template-columns:1fr;padding:16px}
+html.embed .nav{position:static;display:flex;flex-wrap:wrap;gap:2px 14px}
+html.embed .nav strong{width:100%}
+html.embed .nav a{border-left:0;margin:0;padding:2px 0}
+</style>
+</head>
+<body>
+<header><div class="hero">
+  <button id="theme" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
+  <!-- TODO(ikken): eyebrow = 문서 종류 · 대상 환경, h1 = 독자가 얻는 것(무엇을 어떻게 하나), p = 도구가 하는 일 두 문장, chips = 독자가 먼저 알아야 할 전제·경계 3–5개 -->
+  <div class="eyebrow">사용 안내 · Linux</div>
+  <h1>example-cli 로<br>로그를 모아 보내는 방법</h1>
+  <p>example-cli 는 여러 장비의 로그를 한 곳으로 모읍니다. 장비마다 수집기를 띄우고, 모은 파일을 정해진 주기로 저장소에 올립니다.</p>
+  <div class="chips"><span class="chip">중앙 서버 없음</span><span class="chip">전송은 SSH</span><span class="chip">Python 3.11 이상</span></div>
+</div></header>
+
+<div class="layout">
+  <!-- TODO(ikken): 목차 = 아래 .card 의 id 와 h2 를 그대로 (절 4–8개) -->
+  <nav class="nav" aria-label="문서 목차"><strong>이 문서에서</strong><a href="#overview">한눈에 보기</a><a href="#setup">처음 설치하기</a><a href="#daily">평소에 쓰기</a><a href="#limits">주의와 한계</a><a href="#commands">자주 쓰는 명령</a></nav>
+  <main>
+
+    <!-- TODO(ikken): 첫 절 = 구조 그림 하나 + 기억할 점 한 줄. 노드 = 실제 구성 요소, 화살표 = 데이터가 가는 방향 -->
+    <section class="card" id="overview">
+      <h2>한눈에 보기</h2>
+      <p class="lead">각 장비의 수집기는 자기 로그만 다룹니다. 모으는 쪽이 SSH 로 장비에 들어가 파일을 가져옵니다.</p>
+      <div class="diagram" role="img" aria-label="장비 A 의 수집기가 로그를 쌓고, 저장소 B 가 SSH 로 접속해 가져간다.">
+        <div class="ptitle">구조 그림<span>화살표 = 데이터가 가는 방향</span></div>
+        <div class="flow">
+          <div class="node a"><b>장비 A</b><small>수집기 · 로컬 버퍼</small></div>
+          <div class="arrows"><div class="node b"><b>SSH 연결</b><small>B 가 A 에 접속</small></div><span class="arrow">A → B · 로그 전송</span><span class="arrow back">B → A · 수신 확인</span></div>
+          <div class="node a"><b>저장소 B</b><small>날짜별 폴더</small></div>
+        </div>
+      </div>
+      <p class="caption">연결은 B 에서 시작합니다. A 에 열린 포트를 만들지 않습니다.</p>
+      <div class="note ok"><b>기억할 점:</b> 수집기를 띄웠다고 바로 올라가지 않습니다. B 가 다음 주기에 접속해야 파일이 옮겨집니다.</div>
+    </section>
+
+    <!-- TODO(ikken): 설치 절 = 전제(.small) → h3 번호 절마다 명령 블록 + 그 명령이 하는 일 한 줄 -->
+    <section class="card" id="setup">
+      <h2>처음 설치하기</h2>
+      <p class="small">전제: 두 장비 모두 Linux, Python 3.11 이상, B 에서 A 로 비대화형 SSH 접속이 됩니다.</p>
+      <h3>1. 양쪽에 설치</h3>
+      <pre><code>git clone https://example.com/example-cli.git
+cd example-cli
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .</code></pre>
+      <p>이후 예시의 <code>example-cli</code> 는 <code>.venv/bin/example-cli</code> 를 뜻합니다.</p>
+      <h3>2. 장비 A 에서 수집기 시작</h3>
+      <pre><code>.venv/bin/example-cli collect --name device-a</code></pre>
+      <div class="note"><b>한쪽만 접속하는 이유:</b> B 가 A 에 접속할 때 로그를 가져오고 수신 확인도 함께 남깁니다.</div>
+    </section>
+
+    <!-- TODO(ikken): 쓰는 흐름 = 타일 2×2 (누가 · 무엇을) 또는 ol.steps. 실제로 칠 문장·명령을 그대로 -->
+    <section class="card" id="daily">
+      <h2>평소에 쓰기</h2>
+      <ol class="steps">
+        <li><b>A 에서 로그가 쌓입니다.</b> 수집기가 버퍼 폴더에 시간순으로 씁니다.</li>
+        <li><b>B 가 주기적으로 가져갑니다.</b> 기본 5분마다 접속합니다.</li>
+        <li><b>실패하면 다음 주기에 다시 시도합니다.</b> 같은 파일은 한 번만 저장됩니다.</li>
+      </ol>
+      <div class="grid">
+        <div class="tile"><b>A 에서 확인</b><p><code>example-cli status</code> 로 버퍼에 남은 파일 수를 봅니다.</p></div>
+        <div class="tile"><b>B 에서 확인</b><p><code>example-cli pulled --today</code> 로 오늘 받은 파일을 봅니다.</p></div>
+      </div>
+    </section>
+
+    <!-- TODO(ikken): 경계 = 타일(누가 무엇을 맡나) + 목록(하지 않는 것 · 검증 안 된 것). 확인한 사실만 -->
+    <section class="card" id="limits">
+      <h2>주의와 한계</h2>
+      <div class="note warn"><b>버퍼는 자동으로 지워지지 않습니다:</b> 디스크가 차기 전에 <code>prune</code> 을 실행합니다.</div>
+      <ul>
+        <li>현재 Linux 만 지원합니다.</li>
+        <li>파일 하나가 2 GB 를 넘으면 건너뜁니다.</li>
+      </ul>
+    </section>
+
+    <!-- TODO(ikken): 명령 표 = 명령 | 효과 (| 주의). 본문에서 쓴 명령을 빠짐없이 -->
+    <section class="card" id="commands">
+      <h2>자주 쓰는 명령</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>명령</th><th>효과</th></tr></thead>
+        <tbody>
+          <tr><td><code>collect --name NAME</code></td><td>이 장비에서 수집기 시작</td></tr>
+          <tr><td><code>status</code></td><td>버퍼에 남은 파일 수</td></tr>
+          <tr><td><code>pulled --today</code></td><td>오늘 받은 파일 목록</td></tr>
+          <tr><td><code>prune</code></td><td>전송이 끝난 버퍼 파일 정리</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">저장소: <a href="https://example.com/example-cli">example.com/example-cli</a></p>
+    </section>
+
+  </main>
+</div>
+<!-- TODO(ikken): 이 안내가 어느 버전 기준인지 한 줄 -->
+<footer>이 안내는 example-cli 0.1 기준입니다. 명령은 버전에 따라 바뀔 수 있습니다.</footer>
+
+<script>
+(function(){
+  const root=document.documentElement, KEY='ikken-theme', order=[null,'light','dark'];
+  const q=new URLSearchParams(location.search).get('theme');
+  let cur=null; try{cur=q||localStorage.getItem(KEY)}catch(e){}
+  const apply=()=>{cur?root.setAttribute('data-theme',cur):root.removeAttribute('data-theme')};
+  apply();
+  document.getElementById('theme').addEventListener('click',()=>{
+    cur=order[(order.indexOf(cur)+1)%order.length]; apply();
+    try{cur?localStorage.setItem(KEY,cur):localStorage.removeItem(KEY)}catch(e){}
+  });
+})();
+
+// 코드 블록 복사 버튼 — clipboard API, 안 되면 textarea + execCommand
+(function(){
+  const COPY='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg>';
+  const OK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>';
+  function fallback(text){
+    const f=document.createElement('textarea'); f.value=text; f.setAttribute('readonly','');
+    f.style.position='fixed'; f.style.opacity='0'; document.body.appendChild(f); f.select();
+    let ok=false; try{ok=document.execCommand('copy')}catch(e){} f.remove(); return ok;
+  }
+  document.querySelectorAll('pre').forEach((pre,i)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='copy'; b.title='코드 복사'; b.setAttribute('aria-label',`코드 복사 ${i+1}`); b.innerHTML=COPY;
+    const reset=()=>{b.dataset.state=''; b.title='코드 복사'; b.innerHTML=COPY};
+    b.addEventListener('click',async()=>{
+      const c=pre.querySelector('code'), text=(c||pre).innerText;
+      let ok=false;
+      try{await navigator.clipboard.writeText(text); ok=true}catch(e){ok=fallback(text)}
+      b.dataset.state=ok?'ok':'err'; b.title=ok?'복사됨':'복사하지 못했습니다'; if(ok) b.innerHTML=OK;
+      setTimeout(reset,1500);
+    });
+    pre.appendChild(b);
+  });
+})();
+
+// 목차 — 지금 읽는 절을 표시
+(function(){
+  const links=[...document.querySelectorAll('.nav a[href^="#"]')];
+  const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ links.forEach(a=>a.removeAttribute('aria-current')); map.get(e.target.id)?.setAttribute('aria-current','true'); } });
+  },{rootMargin:'-20% 0px -70% 0px'});
+  map.forEach((a,id)=>{const s=document.getElementById(id); if(s) io.observe(s)});
+})();
+</script>
+</body>
+</html>

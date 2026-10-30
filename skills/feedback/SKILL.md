@@ -51,7 +51,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/profile.py" feedback-target      # REPO <
 | 점검 절차 | `guide/verify.md` / `verify` |
 | Confluence 임베드 | `guide/confluence.md` / `confluence` |
 | `/ikken` 진행 절차(구성안, 질문, 보고) | 루트 `SKILL.md` / `진행 (SKILL)` |
-| 모든 결과물에 들어가는 코드(테마·로더·조작) | `templates/*.html` — 다섯 골격 모두 일관되게 / 프로필 `templates/` |
+| 모든 결과물에 들어가는 코드(테마·로더·조작) | `templates/*.html` — 모든 골격에 일관되게 / 프로필 `templates/` |
 | 스크립트 동작(`check.py` · `embed.py` · `profile.py`) | 루트 `scripts/` — REPO 일 때만 |
 
 ## 4. 규칙 쓰는 법

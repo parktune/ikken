@@ -72,6 +72,7 @@
 | callout | `.note`(accent-soft 배경 + 왼쪽 3px accent 선) / `.warn`(warn 계열) — overview 에서만 |
 | tag | 작은 pill, 의미 색 글자 + 그 색의 투명 배경 |
 | lightbox | `position:fixed; inset:0` 덮개(`rgba(0,0,0,.86)`, 다크에서도 같음), 가운데에 이미지 + 오버레이를 **화면에 맞춘 최대 크기**(종횡비 유지, 약 96vw × 88vh)로, 위에 흰 캡션 한 줄(패널 제목 · 사례 id), 오른쪽 위 `×` 아이콘 버튼. 고배율이면 `image-rendering:pixelated` 를 원본 이미지와 같게. 확대는 무대(`overflow:hidden`) 안의 감싸개 div 의 left · top · width · height 를 바꿔서 한다(CSS transform 대신 — 이미지가 다시 그려져 선명). 이동은 이미지가 무대를 벗어나 빈 곳이 보이지 않게 가둔다. SVG 오버레이의 `stroke-width` · `stroke-dasharray` 는 배율로 나눈다. 원본 해상도를 넘겨 키우면 `image-rendering:pixelated`. 커서는 맞춤 크기에서 `zoom-in`, 확대 중 `grab` / `grabbing`. 휠 리스너는 `{passive:false}` 로 뒤 페이지가 스크롤되지 않게 |
+| 코드 블록 (guide) | 어두운 `--pre-bg` 배경, radius 12, 위 40px 여백 띠 오른쪽에 28×28 복사 아이콘 버튼(첫 줄을 가리지 않게). 누르면 체크 아이콘으로 1.5초, 실패하면 주황 테두리 |
 | scalebar | 지도 오른쪽 아래, mono `.72rem`, muted 2px 선 |
 | theme 버튼 | 오른쪽 위 34×30 아이콘 버튼, 반원 아이콘 |
 | 상태 선택 버튼 | 시각적 상태(신호등 점등, 차로 화살표 등)를 고르는 버튼은 **그 상태를 그린 큰 아이콘**이 주인공이고 글씨는 아래에 작게 둔다. 선택 표시는 배경 반전이 아니라 굵은 테두리로 해서 아이콘 색을 지킨다 (2026-10-14 "글씨보다 아이콘을 크게해서 선택할 수 있게") |
@@ -89,6 +90,7 @@
 - walkthrough 는 최대 1240px 이고, `grid-template-columns:minmax(0,1fr) 380px` (그림 | 사이드) 다.
 - overview(문서형) 는 최대 980px 단일 열이다.
 - explorer 는 최대 1500px 이고 sticky header + `1.55fr / 1fr` 카드 grid 다.
+- guide(사용 안내서) 는 최대 1100px 이고 `220px minmax(0,1fr)`(고정 목차 | 카드 절) 다. 카드는 radius 16 · padding 26/28 · 옅은 그림자, 본문 `16px/1.7`.
 - 3D 는 전체 viewport 이고 `minmax(0,1fr) 380px` 다. 오른쪽 aside 는 세로 전체를 쓰고 내부 스크롤한다.
 - 940px 이하에서는 한 열로 접는다. 폰 폭에서도 가로 스크롤이 없어야 하며 좌우 여백은 16px 이상이다.
 - 요소 사이 간격: 페이지 섹션 22–28px, 카드 안 14px, 컨트롤 6–8px.
@@ -102,6 +104,7 @@
 ## 하지 않는 것
 
 - 그라디언트, 글래스모피즘, 큰 그림자, radius 10px 초과, hero 배너, 일러스트, 이모지 아이콘은 쓰지 않는다.
+  - 예외는 **guide 유형** 하나다: 어두운 hero 띠(radial + linear 그라디언트, `--hero-*` 토큰), 카드 radius 12–16, 옅은 카드 그림자(`--shadow`)를 쓴다. 다른 유형에 옮기지 않는다 (2026-10-30 codex-bridge 사용 안내).
 - 색으로만 구분하지 않는다. 선 모양(점선), 굵기, 라벨을 함께 쓴다.
 - 아이콘은 inline SVG(`fill:currentColor`) 로 그린다. 아이콘 폰트는 쓰지 않는다.
 

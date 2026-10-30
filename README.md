@@ -54,6 +54,7 @@ ln -s <경로> ~/.claude/skills/ikken      # 다음 세션부터 ikken@skills-di
 |---|---|---|
 | walkthrough | 알고리즘·규칙이 단계적으로 판정·변형 | `profiles/default/templates/walkthrough.html` |
 | explorer | 실데이터를 프레임·레코드 단위로 탐색 | `profiles/default/templates/explorer.html` |
+| guide | 도구·시스템 설치와 사용 안내서 (hero · 고정 목차 · 카드 절 · 복사 버튼 코드 블록) | `profiles/default/templates/guide.html` |
 | overview | 저장소·시스템 구조와 흐름 | `profiles/default/templates/overview.html` |
 | view3d | 높이·3D 기하가 본질 | `profiles/default/templates/view3d.html` |
 | compare | 여러 규칙·방식을 실데이터 사례에 돌려 결과가 갈리는 곳 비교 (BEV 도식 + 시간축 막대) | `profiles/default/templates/compare.html` |
@@ -64,7 +65,7 @@ ln -s <경로> ~/.claude/skills/ikken      # 다음 세션부터 ikken@skills-di
 
 | 프로필 | 위치 | 담는 것 |
 |---|---|---|
-| `default` | 저장소 `profiles/default/` | 규칙 6개(`guide/`) · 골격 5개(`templates/`) · 이력(`FEEDBACK.md`) — 배포자가 다듬어 배포하는 기본 스타일 |
+| `default` | 저장소 `profiles/default/` | 규칙 6개(`guide/`) · 골격 6개(`templates/`) · 이력(`FEEDBACK.md`) — 배포자가 다듬어 배포하는 기본 스타일 |
 | 사용자 프로필 | `~/.claude/ikken/profiles/<이름>/` | 기본과 **다른 점만**: `profile.md`(규칙 덮어쓰기) · `tokens.css`(색·글꼴, 선택) · `templates/`(골격 교체, 선택) · `FEEDBACK.md` |
 
 - 활성 프로필은 `~/.claude/ikken/config.json` 하나다. `/ikken` 을 처음 실행하면 이름과 취향 질문 네 개(화면 언어 · 색 분위기 · 설명 밀도 · 3D 회전 방향)로 프로필을 만든다. 모두 "기본 그대로" 를 고를 수 있다.
