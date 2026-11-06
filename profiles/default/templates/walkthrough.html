@@ -287,7 +287,8 @@ function draw(){
 
 // pan / zoom
 let drag=null;
-svg.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,vb:{...vb},moved:false};svg.setPointerCapture(e.pointerId);svg.classList.add('drag')});
+// pointer capture 뒤에는 pointerup 의 target 이 svg 가 된다 — 누른 요소의 data-* 는 pointerdown 에서 기억한다
+svg.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,vb:{...vb},moved:false,ds:{...(e.target.dataset||{})}};svg.setPointerCapture(e.pointerId);svg.classList.add('drag')});
 svg.addEventListener('pointermove',e=>{
   if(drag){const k=vb.w/svg.clientWidth,dx=e.clientX-drag.x,dy=e.clientY-drag.y; if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
     vb.x=drag.vb.x-dx*k; vb.y=drag.vb.y-dy*k; setVB(); tip.hidden=true; return}
@@ -299,7 +300,7 @@ svg.addEventListener('pointermove',e=>{
 });
 svg.addEventListener('pointerup',e=>{
   svg.classList.remove('drag'); const was=drag; drag=null;
-  if(was&&!was.moved){const i=e.target.dataset&&e.target.dataset.i; select(i==null?null:+i)}
+  if(was&&!was.moved){const i=was.ds.i; select(i==null?null:+i)}
   else draw();
 });
 svg.addEventListener('wheel',e=>{
