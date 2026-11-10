@@ -74,6 +74,7 @@
 | lightbox | `position:fixed; inset:0` 덮개(`rgba(0,0,0,.86)`, 다크에서도 같음), 가운데에 이미지 + 오버레이를 **화면에 맞춘 최대 크기**(종횡비 유지, 약 96vw × 88vh)로, 위에 흰 캡션 한 줄(패널 제목 · 사례 id), 오른쪽 위 `×` 아이콘 버튼. 고배율이면 `image-rendering:pixelated` 를 원본 이미지와 같게. 확대는 무대(`overflow:hidden`) 안의 감싸개 div 의 left · top · width · height 를 바꿔서 한다(CSS transform 대신 — 이미지가 다시 그려져 선명). 이동은 이미지가 무대를 벗어나 빈 곳이 보이지 않게 가둔다. SVG 오버레이의 `stroke-width` · `stroke-dasharray` 는 배율로 나눈다. 원본 해상도를 넘겨 키우면 `image-rendering:pixelated`. 커서는 맞춤 크기에서 `zoom-in`, 확대 중 `grab` / `grabbing`. 휠 리스너는 `{passive:false}` 로 뒤 페이지가 스크롤되지 않게 |
 | 코드 블록 (guide) | 어두운 `--pre-bg` 배경, radius 12, 위 40px 여백 띠 오른쪽에 28×28 복사 아이콘 버튼(첫 줄을 가리지 않게). 누르면 체크 아이콘으로 1.5초, 실패하면 주황 테두리 |
 | scalebar | 지도 오른쪽 아래, mono `.72rem`, muted 2px 선 |
+| 속성 패널 `.pip` | 도식 패널 안 맨 아래의 패널 속 패널: `border:1px solid var(--line)`, radius 6, `background:var(--bg)`(카드보다 한 단계 낮게), 위에 `.ptitle`("속성 패널" + 해제 방법 한 줄), 본문은 key-value 표(키 muted, 값 mono · tabular-nums) |
 | theme 버튼 | 오른쪽 위 34×30 아이콘 버튼, 반원 아이콘 |
 | 상태 선택 버튼 | 시각적 상태(신호등 점등, 차로 화살표 등)를 고르는 버튼은 **그 상태를 그린 큰 아이콘**이 주인공이고 글씨는 아래에 작게 둔다. 선택 표시는 배경 반전이 아니라 굵은 테두리로 해서 아이콘 색을 지킨다 (2026-10-14 "글씨보다 아이콘을 크게해서 선택할 수 있게") |
 

@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-11-10 | 도식 개체는 hover 로 id, 클릭하면 도식 패널 아래 패널 속 패널(속성 패널)에 그 개체 속성 | `interaction.md` 지도·평면, `style.md` 속성 패널, `verify.md` 8, `templates/compare.html`(BEV 속성 패널 · hover tip · Esc) | lead_vehicle_speed.html |
 | 2026-11-04 | 사례 보고서 형태(요약 → 분포 표 → 대표 사례 카드 → 정해 주셔야 할 것)를 유형으로 · 크게 보기에서 휠 확대 · 축소도 (규칙이 문서에만 있어 손으로 만든 보고서가 빠뜨림) | `templates/cases.html`(새 골격 · lightbox 구현), `patterns.md` 표 · cases, `interaction.md` 공통(lightbox 구현은 cases 골격에서 복사), `scripts/profile.py` TEMPLATES, `SKILL.md` 5, `README.md` | box_undist_none_report.html |
 | 2026-10-30 | codex-bridge 사용 안내 스타일이 가이드로 마음에 듦 — 이런 템플릿도 있으면 | `templates/guide.html`(신규), `patterns.md` 표 · guide, `style.md` 레이아웃 · 예외(hero · radius · 그림자) · 코드 블록, `interaction.md` 공통(복사 버튼 · 목차 표시), `scripts/profile.py` TEMPLATES, `SKILL.md` 5, `README.md`, `skills/config` · `skills/feedback` 골격 수 | codex-bridge-guide.html |
 | 2026-10-28 | 확대 화면(lightbox)에서 마우스 휠로 확대 · 축소, 끌어 이동 | guide/interaction.md · style.md · verify.md | tl_box_undist_check.html |

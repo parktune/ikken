@@ -76,6 +76,12 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
 .bev .td{stroke:var(--panel)} .bev .td.nil{fill:var(--panel);stroke:var(--muted)}
 .bev .lbl{font-family:var(--mono);font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--panel)} .bev .sb{stroke:var(--ink)} .bev .sbt{font-family:var(--font);fill:var(--muted)}
 .bnote{font-size:.74rem;color:var(--muted);margin:3px 0 0}
+/* 속성 패널 — 도식 패널 안 아래의 패널 속 패널. 도식에서 누른 개체의 속성 (interaction.md 「지도·평면」) */
+.pip{margin-top:8px;border:1px solid var(--line);border-radius:6px;padding:6px 9px;background:var(--bg);font-size:.8rem;min-width:0}
+.pip .ptitle{margin-bottom:4px;padding-bottom:4px} .pip table{border-collapse:collapse;width:100%} .pip td{padding:2px 4px;border-bottom:1px solid var(--grid)}
+.pip td:first-child{color:var(--muted);width:40%} .pip td:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums} .pip .none{color:var(--muted)}
+.bev [data-sel]{cursor:pointer} .bev .band.sel{stroke:var(--hit)!important;opacity:.55}
+#tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:3px 7px;font:12px var(--mono);box-shadow:0 2px 10px rgba(0,0,0,.12);z-index:20}
 /* 시간축 막대 + player (interaction.md 「시간축」) */
 .strip{width:100%;height:auto;display:block;cursor:pointer;touch-action:none;user-select:none}
 .rl{font:11px var(--font);fill:var(--muted)} .rl.sel{fill:var(--ink);font-weight:700} .tk{font:10px var(--mono);fill:var(--muted)}
@@ -95,6 +101,7 @@ html.embed h1{font-size:1.2rem;margin:0 0 .2rem} html.embed .bnote{display:none}
 </style>
 </head>
 <body>
+<div id="tip" hidden></div>
 <div class="wrap">
 <header>
   <button id="theme" class="icon" title="테마 (auto → light → dark)" aria-label="테마 전환"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0z"/></svg></button>
@@ -183,7 +190,7 @@ const runsOf=(fr,q)=>{const o=[];fr.forEach((f,i)=>{const l=q[i];if(o.length&&o[
 const sid=l=>l?String(l).slice(-6):'—';
 let active=null;
 // 사례마다 똑같이 적용되는 보기 옵션(방식 · 보기 범위)은 페이지에 하나 — 한 카드에서 바꾸면 모든 카드가 따른다 (interaction.md 「공통」)
-const VIEW={method:REC, zoom:'near'}, SYNC=[];
+const VIEW={method:REC, zoom:'near'}, SYNC=[], tip=document.getElementById('tip');   // tip = 도식 hover 의 id 한 줄
 function setView(k,v){VIEW[k]=v; SYNC.forEach(f=>f())}
 function card(p){
   const sec=document.createElement('section'); sec.className='case'; sec.dataset.zone=p.zone; sec.dataset.left=p.has[REC]?'1':'0';
@@ -196,7 +203,8 @@ function card(p){
    <div class="top"><div><span class="seg sm zoom"><button data-z="near" aria-pressed="true">대상 가까이</button><button data-z="far" aria-pressed="false">구간 전체</button></span>
      <svg class="bev" aria-label="BEV 도식"></svg>
      <!-- TODO(ikken): 도식 기호 설명 한 줄 -->
-     <p class="bnote">위 = 기준 프레임의 진행 방향 · 띠 = 차로(3.2 m) · 점선 중심선 = 교차로 안 · 궤적 점 색 = 고른 방식이 그 프레임에 고른 차로 · 진한 띠 = 지금 프레임의 차로 · 상자 = 차량(○ 기준점, ● 모서리)</p></div>
+     <p class="bnote">위 = 기준 프레임의 진행 방향 · 띠 = 차로(3.2 m) · 점선 중심선 = 교차로 안 · 궤적 점 색 = 고른 방식이 그 프레임에 고른 차로 · 진한 띠 = 지금 프레임의 차로 · 상자 = 차량(○ 기준점, ● 모서리)</p>
+     <div class="pip"><div class="ptitle">속성 패널<span>도식에서 누른 개체 · 빈 곳 클릭 또는 Esc 로 해제</span></div><div class="props"></div></div></div>
     <div><div class="chips">${V.map(([k,nm])=>`<span>${esc(nm)} <b>${p.has[k]?'튐':'—'}</b></span>`).join('')}</div>
      <div class="lg">${order.map(l=>`<span><i style="background:${col(l)}"></i>${esc(l)}</span>`).join('')}</div>
      <div class="atf"></div></div></div>
@@ -205,7 +213,7 @@ function card(p){
     <button class="icon play" title="재생/정지 (Space)" aria-label="재생">▷</button>
     <input type="range" min="0" max="${n-1}" aria-label="프레임"><span class="flab"></span></div>
    <div class="links"></div>`;
-  const q=s=>sec.querySelector(s), strip=q('.strip'), rng=q('input'), lab=q('.flab'), atf=q('.atf'), links=q('.links'), bev=q('.bev'), playB=q('.play');
+  const q=s=>sec.querySelector(s), strip=q('.strip'), rng=q('input'), lab=q('.flab'), atf=q('.atf'), links=q('.links'), bev=q('.bev'), playB=q('.play'), propsEl=q('.props');
   // 막대: 행 = 방식, 구간 색 = 개체
   const W=980, LW=130, RH=16, G=4, H=V.length*(RH+G)+18, f0=fr[0], xs=f=>LW+(f-f0)/n*(W-LW-6);
   let s=`<rect class="rowsel" x="0" width="${W}" height="${RH+G}"/><rect class="ev" x="${xs(e0).toFixed(1)}" y="${V.length*(RH+G)}" width="${Math.max(3,xs(e1+1)-xs(e0)).toFixed(1)}" height="3"><title>사건 구간</title></rect>`;
@@ -217,11 +225,26 @@ function card(p){
   // BEV: 지역 좌표 (x 오른쪽, y 앞) m → svg (x, −y)
   const B=p.bev, hf=B.half, [mr,mf]=B.c, [XF,XR,HW]=B.box, pth=pts=>'M'+pts.map(([x,y])=>`${x} ${-y}`).join('L');
   let b='';
-  B.lanes.forEach(([id,j,pts])=>{b+=`<path class="band" data-l="${esc(id)}" d="${pth(pts)}" style="stroke:${order.includes(id)?col(id):'var(--lane)'};stroke-width:3.2"><title>${esc(id)}</title></path>`});
+  B.lanes.forEach(([id,j,pts])=>{b+=`<path class="band" data-sel="lane" data-l="${esc(id)}" d="${pth(pts)}" style="stroke:${order.includes(id)?col(id):'var(--lane)'};stroke-width:3.2"></path>`});
   B.lanes.forEach(([id,j,pts])=>{b+=`<path class="cl${j?' j':''}" d="${pth(pts)}" style="stroke:${order.includes(id)?col(id):'var(--lane)'}"/>`});
   bev.innerHTML=b+'<g class="trd"></g><g class="lbls"></g><g class="egoL"></g><g class="sbg"></g>';
   const trd=bev.querySelector('.trd'), lblG=bev.querySelector('.lbls'), egoL=bev.querySelector('.egoL'), sbg=bev.querySelector('.sbg');
-  let uNow=-1, timer=null;
+  let uNow=-1, timer=null, SEL=null;      // SEL = 속성 패널에 띄운 개체 {kind:'lane'|'ego', id} — 프레임을 넘겨도 유지
+  // TODO(ikken): 개체마다 보여 줄 속성 — 데이터에 있는 필드를 전부 key-value 로
+  function props(i){
+    if(!SEL){propsEl.innerHTML='<span class="none">도식의 차로 · ego 를 누르면 그 개체의 속성이 여기에 나옵니다.</span>';return}
+    const kv=rows=>'<table>'+rows.map(([a,v])=>`<tr><td>${esc(a)}</td><td>${esc(v)}</td></tr>`).join('')+'</table>';
+    if(SEL.kind==='lane'){const L=B.lanes.find(l=>l[0]===SEL.id), pts=L[2], len=pts.reduce((s,p,k)=>k?s+Math.hypot(p[0]-pts[k-1][0],p[1]-pts[k-1][1]):0,0);
+      propsEl.innerHTML=`<b class="mono">${esc(SEL.id)}</b>`+kv([['교차로 안',L[1]?'yes':'no'],['정점 수',pts.length],['길이',len.toFixed(1)+' m'],
+        ...V.map(([k,nm])=>[nm+' (f'+fr[i]+')',p.seq[k][i]===SEL.id?'고름':'—'])]);return}
+    const [r,f,yaw]=B.ego[i]; propsEl.innerHTML=`<b class="mono">ego · f${fr[i]}</b>`+kv([['위치 x, y',`${r.toFixed(1)}, ${f.toFixed(1)} m`],['yaw (오른쪽 +)',yaw.toFixed(1)+'°'],...V.map(([k,nm])=>[nm,p.seq[k][i]||'—'])]);
+  }
+  function setSel(s){SEL=s; show(+rng.value)}
+  bev.addEventListener('click',e=>{const el=e.target.closest('[data-sel]'); active=me;
+    setSel(!el?null:el.dataset.sel==='lane'?{kind:'lane',id:el.dataset.l}:{kind:'ego',id:'ego'})});
+  bev.addEventListener('mousemove',e=>{const el=e.target.closest('[data-sel]'); if(!el){tip.hidden=true;return}
+    tip.textContent=el.dataset.sel==='lane'?'lane '+el.dataset.l:'ego · f'+fr[+rng.value]; tip.hidden=false; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY+12)+'px'});
+  bev.addEventListener('mouseleave',()=>{tip.hidden=true});
   function paint(u){     // 궤적 점 = 고른 방식이 프레임마다 고른 개체 색
     trd.innerHTML=B.ego.map(([x,y],k)=>{const l=p.seq[VIEW.method][k];return `<circle class="td${l?'':' nil'}" cx="${x}" cy="${-y}" r="${.42*u}" style="stroke-width:${.12*u};${l?`fill:${col(l)}`:''}"><title>f${fr[k]} · ${esc(l||'—')}</title></circle>`}).join('');
     const j=V.findIndex(([k])=>k===VIEW.method); rowsel.setAttribute('y',j*(RH+G)-G/2); rls.forEach((t,i)=>t.classList.toggle('sel',i===j)); uNow=u}
@@ -233,10 +256,11 @@ function card(p){
     if(u!==uNow) paint(u);
     const t=yaw*Math.PI/180, F=[Math.sin(t),Math.cos(t)], R=[Math.cos(t),-Math.sin(t)], Q=(a,l)=>[r+F[0]*a+R[0]*l, f+F[1]*a+R[1]*l];
     const cs=[Q(XF,-HW),Q(XF,HW),Q(XR,HW),Q(XR,-HW)], tri=[Q(XF-.3,0),Q(XF-1.3,-.5),Q(XF-1.3,.5)];
-    egoL.innerHTML=`<polygon class="car" points="${cs.map(([x,y])=>`${x},${-y}`).join(' ')}"/>`+cs.map(([x,y])=>`<circle class="pt" cx="${x}" cy="${-y}" r=".28"/>`).join('')+
+    egoL.innerHTML=`<polygon class="car" data-sel="ego" points="${cs.map(([x,y])=>`${x},${-y}`).join(' ')}"/>`+cs.map(([x,y])=>`<circle class="pt" cx="${x}" cy="${-y}" r=".28"/>`).join('')+
       `<polygon class="pt" points="${tri.map(([x,y])=>`${x},${-y}`).join(' ')}"/><circle class="o" cx="${r}" cy="${-f}" r=".4"/>`;
     const l=p.seq[VIEW.method][i], lx=r+HW+1.4, ly=-f+.4*u;
-    bev.querySelectorAll('.band').forEach(e=>e.classList.toggle('on',e.dataset.l===l));
+    bev.querySelectorAll('.band').forEach(e=>{e.classList.toggle('on',e.dataset.l===l); e.classList.toggle('sel',!!SEL&&SEL.kind==='lane'&&e.dataset.l===SEL.id)});
+    props(i);
     lblG.innerHTML=(l?`<rect x="${lx}" y="${ly-.95*u}" width="${1.1*u}" height="${1.1*u}" rx="${.15*u}" style="fill:${col(l)}"/>`:'')+
       `<text class="lbl" x="${l?lx+1.5*u:lx}" y="${ly}" style="font-size:${1.3*u}px;stroke-width:${.35*u}px">${esc(l?sid(l):'없음')}</text>`;
   }
@@ -252,7 +276,7 @@ function card(p){
   SYNC.push(sync);
   function play(on){if(on==null)on=!timer; clearInterval(timer); timer=null; playB.textContent='▷';
     if(on){playB.textContent='❚❚'; timer=setInterval(()=>{if(+rng.value>=n-1){play(false);return} show(+rng.value+1)},120)}}
-  const me={show,rng,play};
+  const me={show,rng,play,clear:()=>{if(SEL)setSel(null)}};
   sec.querySelectorAll('.lgc button').forEach(b=>b.onclick=()=>{active=me;setView('method',b.dataset.k)});
   sec.querySelectorAll('.zoom button').forEach(z=>z.onclick=()=>{active=me;setView('zoom',z.dataset.z)});
   rng.oninput=()=>{active=me;show(+rng.value)};
@@ -281,6 +305,7 @@ addEventListener('keydown',e=>{
   if(!active||e.target.closest('input,textarea,select'))return;          // range 에 포커스가 있으면 브라우저가 처리
   if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault(); const d=(e.shiftKey?10:1)*(e.key==='ArrowRight'?1:-1); active.show(+active.rng.value+d)}
   else if(e.key===' '&&!e.target.closest('button')){e.preventDefault(); active.play()}
+  else if(e.key==='Escape') active.clear();
 });
 })();
 </script>
