@@ -120,6 +120,8 @@ code{background:var(--code); padding:1px 5px; border-radius:3px}
 /* 도식 위 편집 (interaction.md 「파라미터 놀이터」) — 끄는 손잡이 · 누르는 숫자 · 그 자리 입력창 */
 .od-knob{fill:var(--hit); stroke:var(--panel); stroke-width:2; vector-effect:non-scaling-stroke}
 .od-knob:hover{stroke:var(--ink)}
+/* 선택(focus) — 누른 개체는 다른 개체 · 빈 곳 · 밖 · Esc 전까지 선택, Delete 로 지움 */
+svg .focus{stroke:var(--hit); stroke-width:2.5; stroke-dasharray:5 3; vector-effect:non-scaling-stroke}
 .od-lbl{cursor:pointer; font-family:var(--mono); paint-order:stroke; stroke:var(--panel); stroke-width:3px; vector-effect:non-scaling-stroke}
 .od-lbl:hover{text-decoration:underline}
 body.od-dragging,body.od-dragging *{cursor:ew-resize!important; user-select:none}
@@ -367,7 +369,7 @@ function odDrag(el,o){
 // 그 자리 입력창 — fields: [{label,get,set,min,max,step,unit}], extra: [{label,act}] (예: 삭제)
 let odPop=null;
 function odClose(){ if(odPop){ odPop.remove(); odPop=null; } }
-function odEdit(ev,title,fields,extra=[]){
+function odEdit(ev,title,fields,extra=[],opt={}){
   odClose(); const d=document.createElement('div'); d.className='od-pop'; d.setAttribute('role','dialog');
   d.innerHTML=`<div class="od-h">${odEsc(title)}<button class="od-x" title="닫기 (Esc)" aria-label="닫기">×</button></div>`+
     fields.map((f,i)=>`<label class="od-r"><span>${odEsc(f.label)}</span><button data-i="${i}" data-d="-1" title="−${f.step}" aria-label="줄이기">−</button><input type="number" data-i="${i}" min="${f.min}" max="${f.max}" step="${f.step}" value="${f.get()}"><button data-i="${i}" data-d="1" title="+${f.step}" aria-label="늘리기">+</button><span class="u">${odEsc(f.unit)}</span></label>`).join('')+
@@ -382,10 +384,21 @@ function odEdit(ev,title,fields,extra=[]){
   d.querySelectorAll('button[data-d]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i; ap(i,fields[i].get()+(+b.dataset.d)*fields[i].step); }));
   d.querySelectorAll('button[data-x]').forEach(b=>b.addEventListener('click',()=>{ extra[+b.dataset.x].act(); odClose(); }));
   d.querySelector('.od-x').addEventListener('click',odClose);
-  const first=d.querySelector('input'); if(first){ first.focus(); first.select(); }
+  const first=d.querySelector('input'); if(first && opt.focus!==false){ first.focus(); first.select(); }
 }
 document.addEventListener('pointerdown',ev=>{ if(odPop && !ev.target.closest('.od-pop')) odClose(); },true);
 document.addEventListener('keydown',ev=>{ if(ev.key==='Escape' && odPop){ odClose(); ev.stopImmediatePropagation(); } },true);
+// 선택(focus) — 누른 개체는 다른 개체 · 빈 곳 · 도식 밖 · Esc 전까지 선택 상태. Delete / Backspace 로 지운다(입력창에 있을 때는 아님)
+// 쓰는 쪽이 OD.onChange(다시 그리기) · OD.onDelete(id) · OD.root(도식 요소 선택자)를 정한다
+const OD={sel:null,onChange:null,onDelete:null,root:null};
+function odSelect(id){ if(OD.sel===id) return; OD.sel=id; if(OD.onChange) OD.onChange(); }
+document.addEventListener('keydown',ev=>{
+  if(OD.sel==null) return;
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement&&document.activeElement.tagName)) return;
+  if(ev.key==='Delete'||ev.key==='Backspace'){ ev.preventDefault(); ev.stopImmediatePropagation(); odClose(); const id=OD.sel; OD.sel=null; if(OD.onDelete) OD.onDelete(id); else if(OD.onChange) OD.onChange(); }
+  else if(ev.key==='Escape' && !odPop){ ev.stopImmediatePropagation(); odSelect(null); }
+},true);
+document.addEventListener('pointerdown',ev=>{ if(OD.sel!=null && OD.root && !ev.target.closest(OD.root+', .od-pop')) odSelect(null); },true);
 // ── 도식 위 편집 끝 ──
 
 // pan / zoom

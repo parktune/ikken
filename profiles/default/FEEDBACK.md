@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-11-11 | 도식에서 누른 개체는 다른 개체 · 바깥을 누르기 전까지 선택 상태, 그때 Delete 로 삭제 | `interaction.md` 파라미터 놀이터, `verify.md` 9, `templates/walkthrough.html`(「도식 위 편집」 블록에 선택 `OD` · `odSelect` · Delete, `odEdit` 포커스 옵션, `svg .focus`) | mobil_lane_flow_proposal.html |
 | 2026-11-11 | 판정 근거도 "왼쪽 Δ" 같은 말 말고 값을 넣은 실제 식으로 · 기호는 클릭하면 뜻 (같은 날: 기호 설명 hover → 클릭, 수식은 KaTeX 렌더, v̇ 와 v 가 같이 강조되던 것) | `explanation.md` 수식, `templates/walkthrough.html`(「기호 설명」 블록 · 2단계 판정식) | mobil_lane_flow_proposal.html |
 | 2026-11-11 | avoid_left/right 같은 결정론적 최종 출력은 크고 잘 보이게 | `style.md` 컴포넌트(최종 판정 배지), `templates/compare.html`(`.verdicts` · `show()` 배지) | mobil_lane_flow_proposal.html |
 | 2026-11-11 | 도식 패널 위에서 수치를 누르고 바꿀 수 있게(끌기 · 그 자리 입력창 · 토글) | `interaction.md` 파라미터 놀이터, `verify.md` 9, `templates/walkthrough.html`(「도식 위 편집」 블록 · link_m 손잡이 · `setLinkM`) | mobil_lane_flow_proposal.html |
