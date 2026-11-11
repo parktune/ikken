@@ -61,6 +61,16 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
 .tag{font:500 .74rem var(--font);padding:1px 7px;border-radius:3px;margin-left:6px;border:1px solid currentColor;white-space:nowrap} .tag.ok{color:var(--ok)} .tag.rem{color:var(--rem)} .tag.mu{color:var(--muted)}
 .top{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:12px 18px;align-items:start;margin:4px 0 8px}
 @media (max-width:760px){.top{grid-template-columns:1fr}}
+/* 최종 판정 배지 (style.md 「최종 판정 배지」) — 그 프레임의 결정론적 최종 출력은 크게, 결과 색 채움 · 값이 바뀌면 한 번 반짝 */
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:6px 0 10px}
+.verdict{--vc:var(--line);border:2px solid var(--vc);border-radius:8px;padding:7px 12px 9px;background:color-mix(in srgb,var(--vc) 16%,var(--panel));min-width:0;transition:background .15s,border-color .15s}
+.verdict .vk{display:block;font-size:.74rem;color:var(--muted);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.verdict b{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:clamp(1.1rem,4.2vw,1.5rem);font-weight:700;line-height:1.2;white-space:nowrap;color:var(--ink)}
+.verdict b i{width:.8em;height:.8em;border-radius:3px;background:var(--vc);flex:none}
+.verdict.none{border-style:dashed;background:var(--panel)} .verdict.none b{color:var(--muted);font-weight:500}
+.verdict.sel{outline:2px solid var(--ink);outline-offset:1px}
+.verdict.chg{animation:vpulse .45s ease-out} @keyframes vpulse{from{box-shadow:0 0 0 4px color-mix(in srgb,var(--ink) 25%,transparent)}to{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.verdict.chg{animation:none}}
 .chips{font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;margin:.2rem 0 .4rem} .chips b{font-weight:500;color:var(--ink)}
 .lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.78rem;margin:2px 0 6px} .lg span{font-family:var(--mono)}
 .lg i,.lid i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
@@ -200,6 +210,7 @@ function card(p){
   sec.innerHTML=`<h3><span class="mono">${esc(p.id)}</span> · ${esc(p.title)} <span class="tag mu">${esc(D.zones[p.zone])}</span>${p.has[REC]?'<span class="tag rem">남음</span>':'<span class="tag ok">없음</span>'}${p.flag?`<span class="tag mu">${esc(p.flag)}</span>`:''}</h3>
    ${p.note?`<p class="meta">${esc(p.note)}</p>`:''}
    <div class="segrow lgc"><b>방식</b><span class="seg">${V.map(([k,nm])=>`<button data-k="${k}" aria-pressed="${k===REC}">${esc(nm)}</button>`).join('')}</span></div>
+   <div class="verdicts" aria-live="polite"></div>
    <div class="top"><div><span class="seg sm zoom"><button data-z="near" aria-pressed="true">대상 가까이</button><button data-z="far" aria-pressed="false">구간 전체</button></span>
      <svg class="bev" aria-label="BEV 도식"></svg>
      <!-- TODO(ikken): 도식 기호 설명 한 줄 -->
@@ -213,7 +224,7 @@ function card(p){
     <button class="icon play" title="재생/정지 (Space)" aria-label="재생">▷</button>
     <input type="range" min="0" max="${n-1}" aria-label="프레임"><span class="flab"></span></div>
    <div class="links"></div>`;
-  const q=s=>sec.querySelector(s), strip=q('.strip'), rng=q('input'), lab=q('.flab'), atf=q('.atf'), links=q('.links'), bev=q('.bev'), playB=q('.play'), propsEl=q('.props');
+  const q=s=>sec.querySelector(s), verd=q('.verdicts'), strip=q('.strip'), rng=q('input'), lab=q('.flab'), atf=q('.atf'), links=q('.links'), bev=q('.bev'), playB=q('.play'), propsEl=q('.props');
   // 막대: 행 = 방식, 구간 색 = 개체
   const W=980, LW=130, RH=16, G=4, H=V.length*(RH+G)+18, f0=fr[0], xs=f=>LW+(f-f0)/n*(W-LW-6);
   let s=`<rect class="rowsel" x="0" width="${W}" height="${RH+G}"/><rect class="ev" x="${xs(e0).toFixed(1)}" y="${V.length*(RH+G)}" width="${Math.max(3,xs(e1+1)-xs(e0)).toFixed(1)}" height="3"><title>사건 구간</title></rect>`;
@@ -266,6 +277,9 @@ function card(p){
   }
   function show(i){i=Math.max(0,Math.min(n-1,i)); rng.value=i; const f=fr[i], X=xs(f+.5);
     cur.setAttribute('x1',X); cur.setAttribute('x2',X); lab.textContent=`f${f}`; drawBev(i);
+    // 최종 판정 배지 — 방식마다 그 프레임의 결과를 크게 (고른 방식은 테두리)
+    const prevV=verd._v||[]; verd._v=V.map(([k])=>p.seq[k][i]||null);
+    verd.innerHTML=V.map(([k,nm],j)=>{const l=p.seq[k][i];return `<div class="verdict${l?'':' none'}${k===VIEW.method?' sel':''}${prevV.length&&prevV[j]!==verd._v[j]?' chg':''}" style="--vc:${l?col(l):'var(--line)'}"><span class="vk">${esc(nm)}</span><b>${l?'<i></i>':''}${esc(l||'—')}</b></div>`}).join('');
     atf.innerHTML=V.map(([k,nm])=>{const l=p.seq[k][i];return `<div class="v${k===VIEW.method?' sel':''}"><span>${esc(nm)}</span><span class="lid"><i style="background:${col(l)}"></i>${esc(l||'—')}</span></div>`}).join('');
     if(D.links&&D.links.length){const us=D.links.map(([nm,t])=>[nm,t.replace('{case}',encodeURIComponent(p.id)).replace('{frame}',f)]);
       links.innerHTML=`원본 f${f}: `+us.map(([nm,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(nm)}</a>`).join(' · ')+` <span class="mono" style="color:var(--muted)">${esc(us[0][1])}</span>`}}

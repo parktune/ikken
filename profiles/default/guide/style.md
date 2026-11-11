@@ -61,6 +61,7 @@
 |---|---|
 | card | `background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:16px 18px` (탐색기는 radius 10, padding 12/14) |
 | eyebrow `.k` | mono `.72rem`, `letter-spacing:.08em`, uppercase, `--muted` |
+| 최종 판정 배지 `.verdict` | 결정론적인 최종 출력(판정 값 · 고른 차로 · avoid_left/right 같은 명령)은 **페이지에서 가장 눈에 띄는 값**으로 그린다 — 결과 패널 맨 위 · 사례 카드 제목 바로 아래(도식보다 위)에 방식(규칙)마다 한 칸씩. 값은 mono `1.1–1.5rem` 700, 칸은 그 값의 의미 색으로 2px 테두리 + 16% 채움, 방향이 있는 값은 방향 아이콘(◀ · ▶)을 그 쪽에 붙이고, 출력 없음(null · —)은 점선 테두리 + muted. 값이 바뀌면 한 번 반짝인다(`prefers-reduced-motion` 이면 끔). 시점 값 표의 같은 값은 그대로 두되 배지가 주인공이다. 구현은 `templates/compare.html` 의 `.verdicts` CSS · `show()` 의 배지 블록 (2026-11-11 "avoid_left, avoid_right 같은 매우 결정론적이고 중요한 최종 output은 지금처럼 잘 안 보이면 안돼") |
 | stats | 3열 grid, 각 칸 `border-top:2px solid var(--line)`, 값 `1.25rem` 700 tabular-nums, 라벨 `.74rem` muted |
 | 버튼 | `border:1px solid var(--line)`, radius 4–6, `font:inherit`, 현재/활성은 `background:var(--ink); color:var(--panel)` 반전, disabled 는 `opacity:.35` |
 | segmented | 붙인 버튼 묶음(가운데 경계 1px), 앞에 muted 작은 라벨(`유형` · `매칭 로직`), 고른 것은 반전. 필터 · 방식 선택 · 모드 전환에 쓴다 |
