@@ -203,7 +203,7 @@ let active=null;
 const VIEW={method:REC, zoom:'near'}, SYNC=[], tip=document.getElementById('tip');   // tip = 도식 hover 의 id 한 줄
 function setView(k,v){VIEW[k]=v; SYNC.forEach(f=>f())}
 function card(p){
-  const sec=document.createElement('section'); sec.className='case'; sec.dataset.zone=p.zone; sec.dataset.left=p.has[REC]?'1':'0';
+  const sec=document.createElement('section'); sec.className='case'; sec.dataset.scene='사례 카드'; sec.dataset.zone=p.zone; sec.dataset.left=p.has[REC]?'1':'0';
   const order=[]; V.forEach(([k])=>p.seq[k].forEach(l=>{if(l&&!order.includes(l))order.push(l)}));
   const col=l=>{if(!l)return 'var(--none)';const i=order.indexOf(l);return i>=0&&i<8?`var(--s${i+1})`:'var(--lane)'};
   const fr=p.frames, n=fr.length, [e0,e1]=p.event;

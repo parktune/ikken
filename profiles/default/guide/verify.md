@@ -23,7 +23,8 @@
    - 같은 폭들에서 그림(`.stage`)이 잘리지 않는지(`scrollHeight ≤ clientHeight`)도 본다.
    - `check.py` 는 이 모두를 한다 (`steps` · `steps_760` · `embed`). 넓은 폭에서만 통과하고 접힌 폭에서 버튼이 밀린 사고가 있었다 (2026-10-21).
 5. 키보드 단축키를 `press_key` 로 확인한다.
-6. 폭 390px(`resize_page` 또는 `emulate` viewport)에서 `document.documentElement.scrollWidth <= innerWidth` 인지, 레이아웃이 한 열로 접히는지 본다.
+6. QHD(2560×1300) 에서 `data-scene` 장면마다 높이가 화면 높이 이하인지 본다 — `scripts/check.py` 의 `qhd` 항목. 장면 하나를 맨 위에 맞춰 스크린샷을 찍어 잘린 곳이 없는지 직접 본다.
+6-1. 폭 390px(`resize_page` 또는 `emulate` viewport)에서 `document.documentElement.scrollWidth <= innerWidth` 인지, 레이아웃이 한 열로 접히는지 본다.
 7. 이미지가 있으면 하나를 실제로 눌러 lightbox 가 화면을 덮는지, 오버레이가 함께 커졌는지, `Esc` 로 닫히는지, 휠로 커서 기준 확대 · 축소되고 끌어 이동되는지(선 굵기 그대로, 뒤 페이지 스크롤 없음), 끈 뒤 손을 떼도 닫히지 않는지 본다.
 8. 도식에 누를 수 있는 개체가 있으면 **실제 마우스로** 하나를 hover 해 tooltip 에 id 가 나오는지, 클릭해 속성 패널이 채워지는지, 프레임을 넘겨도 유지되는지, 빈 곳 클릭 · `Esc` 로 비워지는지 본다(테두리만 눌리는 채움 없는 도형이 흔한 실수다).
 9. 도식 위 편집이 있으면 **실제 마우스로** 손잡이 하나를 끌어 값과 slider 가 함께 바뀌는지, 도형 · 숫자를 눌러 입력창이 열리고 입력 · `+`/`−` 가 바로 반영되는지, `Esc` · 바깥 누르기로 닫히는지, 토글 요소를 눌러 조건이 바뀌는지, `reset` 이 되돌리는지, 개체를 눌러 선택 표시가 남고 `Delete` 로 지워지는지(입력창 안 `Backspace` 는 글자만), 빈 곳 · 밖 · `Esc` 로 선택이 풀리는지 본다.

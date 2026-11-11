@@ -6,6 +6,7 @@ playwright(python) 가 설치된 인터프리터로 실행한다:
 하는 일 (결과는 JSON 한 덩어리로 stdout):
   - file:// 로 열고 console error / warning / pageerror 수집
   - 라이트·다크·좁은 폭(390px) 스크린샷
+  - QHD(2560×1300) 에서 [data-scene] 장면마다 높이 ≤ 화면 (한 장면 = 한 화면)
   - 좁은 폭에서 가로 스크롤 여부 (scrollWidth > innerWidth)
   - #next 가 있으면 끝까지 실제 마우스로 클릭하며 #prev/#next · #steps 위치가 변하는지, 버튼 중심이 덮여 있지 않은지
     — 기본 폭과 한 열로 접히는 760 폭 둘 다 (접힌 레이아웃에서 그림 높이가 버튼을 밀던 사고, 2026-10-21)
@@ -144,11 +145,20 @@ def main():
         rep["narrow"] = {"scrollWidth": sw[0], "innerWidth": sw[1], "no_hscroll": sw[0] <= sw[1]}
         shot(pg, "narrow")
         ctx.close()
+
+        # 한 장면 = 한 화면 — 기준 QHD(2560×1440, 브라우저 안 약 2560×1300). [data-scene] 요소마다 높이 ≤ 화면 높이
+        ctx, pg = open_page("light", 2560, 1300)
+        sc = pg.evaluate("""() => [...document.querySelectorAll('[data-scene]')].map((e,i) => {
+            const r = e.getBoundingClientRect(); return {name: e.dataset.scene || (e.className+'#'+i), h: Math.round(r.height), w: Math.round(r.width)}; })""")
+        rep["qhd"] = {"viewport": "2560x1300", "scenes": sc, "fits": all(x["h"] <= 1300 for x in sc),
+                      "note": "" if sc else "data-scene 이 붙은 장면이 없다 — 데이터 장면(사례 카드 · 놀이터 · 탐색기 화면)에 data-scene 을 단다"}
+        shot(pg, "qhd")
+        ctx.close()
         browser.close()
 
     errs = [c for c in rep["console"] if c["type"] in ("error", "pageerror")]
     rep["errors"] = len(errs)
-    rep["ok"] = (not errs and rep["narrow"]["no_hscroll"] and rep.get("steps", {}).get("nav_fixed", True)
+    rep["ok"] = (not errs and rep["narrow"]["no_hscroll"] and rep["qhd"]["fits"] and rep.get("steps", {}).get("nav_fixed", True)
                  and rep.get("steps_760", {}).get("nav_fixed", True)
                  and all(e["nav_fixed"] and e["stage_fits"] for e in rep.get("embed", {}).values()))
     if "frame" in rep:

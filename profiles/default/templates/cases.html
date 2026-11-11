@@ -184,7 +184,7 @@ $('tables').innerHTML=(D.tables||[]).map(t=>`<section class="card"><div class="p
   ${t.rows.map(r=>`<tr>${r.map((v,i)=>`<td class="${t.cols[i][1]}">${typeof v==='number'?v.toLocaleString():v}</td>`).join('')}</tr>`).join('')}</table></div>
   ${t.note?`<p class="note">${t.note}</p>`:''}</section>`).join('');
 $('groups').innerHTML=(D.groups||[]).map(g=>`<h2>${esc(g.title)}</h2>${g.intro?`<p class="note">${g.intro}</p>`:''}
-  ${g.cases.map(c=>`<section class="case"><h3>${esc(c.title)}</h3>
+  ${g.cases.map(c=>`<section class="case" data-scene="사례 카드"><h3>${esc(c.title)}</h3>
     <div class="chips">${(c.chips||[]).map(([k,v])=>`<span>${esc(k)} <b>${v}</b></span>`).join('')}</div>
     <div class="figs n${Math.min(3,c.figs.length)}">${c.figs.map(f=>`<figure><img class="lb" src="${f.src}" alt="${esc(f.cap)}" title="누르면 크게 보기 — 휠 확대" loading="lazy"><figcaption>${f.cap}</figcaption></figure>`).join('')}</div>
     ${c.note?`<p class="note">${c.note}</p>`:''}</section>`).join('')}`).join('');
