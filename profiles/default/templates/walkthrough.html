@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- TODO(ikken): 2–4 단어 제목 -->
 <title>거리 기준 점 묶기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -108,6 +110,13 @@ code{background:var(--code); padding:1px 5px; border-radius:3px}
 .uf output{font-family:var(--mono); font-size:.82rem; min-width:4.5em; text-align:right}
 .uf button{font:inherit; font-size:.78rem; padding:3px 9px; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:4px; cursor:pointer}
 .uf .hint{font-size:.78rem; color:var(--muted); margin-top:4px}
+/* 기호 설명 (explanation.md 「수식」) — 식의 기호를 누르면 뜻 · 지금 값. 같은 기호는 함께 강조 */
+.fx{margin:.5rem 0;padding:8px 12px;background:var(--code);border-radius:4px;overflow-x:auto}
+.katex *{pointer-events:none} .katex [data-s],.katex [data-s] *{pointer-events:auto}
+.katex [data-s]{cursor:pointer;border-radius:2px} .katex [data-s]:hover{background:color-mix(in srgb,var(--hit) 12%,transparent)}
+.katex [data-s].hl{background:color-mix(in srgb,var(--hit) 22%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--hit) 50%,transparent)}
+#symtip{position:fixed;z-index:51;background:var(--panel);color:var(--ink);border:1px solid var(--hit);border-radius:4px;padding:6px 26px 6px 9px;font-size:.8rem;max-width:360px;box-shadow:0 2px 12px rgba(0,0,0,.16);line-height:1.5}
+#symtip .x{position:absolute;top:2px;right:4px;border:0;background:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:0 4px}
 /* 도식 위 편집 (interaction.md 「파라미터 놀이터」) — 끄는 손잡이 · 누르는 숫자 · 그 자리 입력창 */
 .od-knob{fill:var(--hit); stroke:var(--panel); stroke-width:2; vector-effect:non-scaling-stroke}
 .od-knob:hover{stroke:var(--ink)}
@@ -250,7 +259,9 @@ const STEPS=[
    stats:()=>[[P.length,'점'],[params.link_m.toFixed(1)+' m','link_m'],['—','묶음']],
    legend:null, vis:{points:true}},
   {key:'이웃', title:'가까운 두 점을 잇는다',
-   body:()=>`<p>모든 점 쌍의 거리를 재고 <code>link_m</code> 이하이면 선으로 잇습니다. 선은 "같은 묶음일 수 있다"는 뜻입니다.</p>`,
+   body:()=>`<p>모든 점 쌍의 거리를 재고 <code>link_m</code> 이하이면 선으로 잇습니다. 선은 "같은 묶음일 수 있다"는 뜻입니다.</p>
+     <div class="fx">${fx(`(i,j)\\in ${Ds('E')} \\iff ${Ds('d')} \\le ${Ds('link')}`,true)}</div>
+     <p class="mono" style="font-size:.8rem;color:var(--muted)">식의 기호를 누르면 뜻이 나온다</p>`,
    stats:()=>[[M.links.length,'연결'],[params.link_m.toFixed(1)+' m','link_m'],['—','묶음']],
    legend:()=>[[M.links.length,'연결',`거리 ≤ ${params.link_m} m 인 점 쌍`]],
    vis:{points:true,links:true}, knob:true},
@@ -309,6 +320,33 @@ function draw(){
   if(v.groups)lg.push(`<span><span class="sw" style="border-color:transparent;background:var(--grp-f)"></span>묶음 영역</span>`);
   document.getElementById('legend').innerHTML=lg.join('');
 }
+
+// ── 기호 설명 (ikken explanation.md 「수식」) — 이 블록을 그대로 복사해 쓴다 ──
+// 식은 KaTeX 로, 기호는 Ds(key) 로 감싼다(첨자만 다르면 Ds(key, tex)). 누르면 뜻 · 지금 값이 뜨고 같은 key 는 함께 강조된다.
+// TODO(ikken): 기호 사전 — key: {tex, t(뜻), v(지금 값, 선택)}. 다른 양은 다른 key (v 와 v̇ 처럼).
+const SYMS={
+  d:{tex:'d(p_i,p_j)',t:'두 점 사이의 거리 (m)'},
+  link:{tex:'\\mathrm{link\\_m}',t:'같은 묶음으로 잇는 최대 거리 (m) — 아래 손잡이 값',v:()=>params.link_m.toFixed(1)+' m'},
+  E:{tex:'E',t:'잇는 선(이웃 쌍)의 집합'},
+};
+const Ds=(k,tex)=>`\\htmlData{s=${k}}{${tex||SYMS[k].tex}}`;
+const fx=(s,disp)=>window.katex?katex.renderToString(s,{throwOnError:false,strict:false,displayMode:!!disp,trust:c=>c.command==='\\htmlData'}):s;
+let symK=null, symEl=null; const symtip=document.createElement('div'); symtip.id='symtip'; symtip.hidden=true; document.body.appendChild(symtip);
+function symHL(k,on){document.querySelectorAll(`.katex [data-s="${k}"]`).forEach(e=>e.classList.toggle('hl',on))}
+function symPlace(){ if(!symEl||symtip.hidden)return; if(!symEl.isConnected){symSel(null);return}
+  const a=symEl.getBoundingClientRect(), r=symtip.getBoundingClientRect(), fb=(symEl.closest('.fx, li, td')||symEl).getBoundingClientRect();
+  let x=Math.max(8,Math.min(a.left,innerWidth-8-r.width)), y=fb.bottom+4; if(y+r.height>innerHeight-8)y=fb.top-r.height-4;
+  symtip.style.left=x+'px'; symtip.style.top=y+'px'}
+function symFill(){ if(!symK)return; const s=SYMS[symK];
+  symtip.innerHTML=`<button class="x" aria-label="닫기" title="닫기 (Esc)">×</button>${fx(s.tex)} — ${s.t}${s.v?` · 지금 <b>${s.v()}</b>`:''}`; symPlace()}
+function symSel(k,el){ if(symK)symHL(symK,false);
+  if(k==null||(k===symK&&el===symEl)){symK=symEl=null;symtip.hidden=true;return}
+  symK=k; symEl=el; symHL(k,true); symtip.hidden=false; symFill()}
+document.addEventListener('click',e=>{ if(e.target.closest('#symtip .x')){symSel(null);return} if(e.target.closest('#symtip'))return;
+  const s=e.target.closest('.katex [data-s]'); if(s){symSel(s.dataset.s,s);return} if(symK)symSel(null)});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&symK){symSel(null);e.stopImmediatePropagation()} },true);
+addEventListener('scroll',symPlace,true); addEventListener('resize',symPlace);
+// ── 기호 설명 끝 ──
 
 // ── 도식 위 편집 (ikken interaction.md 「파라미터 놀이터」) — 이 블록을 그대로 복사해 쓴다 ──
 // 놀이터 도식에서 바로 값을 바꾼다: 끌기(odDrag) · 누르면 그 자리 입력창(odEdit). slider 와 같은 상태를 쓰고, 바꾸면 slider 도 따라 움직인다.
@@ -412,6 +450,7 @@ function setLinkM(v){
   const st=document.querySelector('#card .stats'); if(st) st.innerHTML=s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('');
   const dl=document.querySelector('#card .dl'); const lg2=s.legend&&s.legend(); if(dl&&lg2)dl.innerHTML=lg2.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('');
   if(sel!=null)select(sel);
+  symFill();
 }
 function card(){
   const s=STEPS[cur], lg=s.legend&&s.legend();
