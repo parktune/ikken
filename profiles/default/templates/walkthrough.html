@@ -108,6 +108,20 @@ code{background:var(--code); padding:1px 5px; border-radius:3px}
 .uf output{font-family:var(--mono); font-size:.82rem; min-width:4.5em; text-align:right}
 .uf button{font:inherit; font-size:.78rem; padding:3px 9px; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:4px; cursor:pointer}
 .uf .hint{font-size:.78rem; color:var(--muted); margin-top:4px}
+/* 도식 위 편집 (interaction.md 「파라미터 놀이터」) — 끄는 손잡이 · 누르는 숫자 · 그 자리 입력창 */
+.od-knob{fill:var(--hit); stroke:var(--panel); stroke-width:2; vector-effect:non-scaling-stroke}
+.od-knob:hover{stroke:var(--ink)}
+.od-lbl{cursor:pointer; font-family:var(--mono); paint-order:stroke; stroke:var(--panel); stroke-width:3px; vector-effect:non-scaling-stroke}
+.od-lbl:hover{text-decoration:underline}
+body.od-dragging,body.od-dragging *{cursor:ew-resize!important; user-select:none}
+.od-pop{position:fixed; z-index:60; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.18); padding:6px 8px 8px; font-size:.8rem; min-width:220px}
+.od-pop .od-h{display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:4px}
+.od-pop .od-x{border:0; background:none; color:var(--muted); font-size:1rem; cursor:pointer; padding:0 4px}
+.od-pop .od-r{display:flex; align-items:center; gap:4px; margin:3px 0} .od-pop .od-r>span:first-child{flex:1; color:var(--muted)}
+.od-pop .od-r button,.od-pop .od-a button{font:inherit; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:4px; cursor:pointer; min-width:26px; padding:1px 6px}
+.od-pop input{width:64px; font-family:var(--mono); font-size:.82rem; padding:2px 4px; border:1px solid var(--line); border-radius:4px; background:var(--bg); color:var(--ink); text-align:right}
+.od-pop .u{font-family:var(--mono); color:var(--muted); min-width:2.4em}
+.od-pop .od-a{margin-top:6px; text-align:right}
 .info{font-size:.86rem}
 .info table{border-collapse:collapse; width:100%}
 .info td{padding:3px 6px; border-bottom:1px solid var(--grid); vertical-align:top}
@@ -279,11 +293,62 @@ function draw(){
     const c=el('circle',{cx:X(p),cy:Y(p),r:(on?7:5)*px,fill:on?css('--hit'):grouped?css('--grp'):v.groups?css('--panel'):css('--ink'),
       stroke:on?css('--hit'):grouped?css('--grp'):css('--base'),'stroke-width':1.5*px,'data-i':i,style:'cursor:pointer'},gPts);
   });
+  // 도식 위 편집 — 고른 점(없으면 첫 점) 둘레에 link_m 원과 손잡이 ●: 끌면 바뀌고, ● 나 숫자를 누르면 입력창
+  if(s.knob){
+    const c=P[sel!=null?sel:0], cx=X(c), cy=Y(c), r=params.link_m;
+    const edit=e=>odEdit(e,'link_m',[{label:'거리 문턱',get:()=>params.link_m,set:setLinkM,...LINK,unit:'m'}]);
+    el('circle',{cx,cy,r,fill:'none',stroke:css('--hit'),'stroke-width':1.2*px,'stroke-dasharray':`${4*px} ${3*px}`,'pointer-events':'none'},gPts);
+    el('line',{x1:cx,y1:cy,x2:cx+r,y2:cy,stroke:css('--hit'),'stroke-width':1.2*px,'pointer-events':'none'},gPts);
+    const lab=el('text',{x:cx+r/2,y:cy-5*px,'font-size':11*px,'text-anchor':'middle',fill:css('--hit'),class:'od-lbl'},gPts); lab.textContent=`${params.link_m.toFixed(1)} m`;
+    lab.addEventListener('pointerdown',e=>e.stopPropagation()); lab.addEventListener('click',edit);
+    const h=el('circle',{cx:cx+r,cy,r:6*px,class:'od-knob'},gPts); el('title',{},h).textContent='link_m — 좌우로 끌기 · 누르면 입력';
+    odDrag(h,{axis:'x',per:1,...LINK,get:()=>params.link_m,set:setLinkM,cursor:'ew-resize',click:edit});
+  }
   const lg=[]; lg.push(`<span><span class="sw" style="border-color:var(--base);background:var(--ink);border-radius:50%;width:10px"></span>점</span>`);
   if(v.links)lg.push(`<span><span class="sw" style="border-color:${v.groups?'var(--grp)':'var(--link)'};height:0;border-width:1px"></span>거리 ≤ link_m</span>`);
   if(v.groups)lg.push(`<span><span class="sw" style="border-color:transparent;background:var(--grp-f)"></span>묶음 영역</span>`);
   document.getElementById('legend').innerHTML=lg.join('');
 }
+
+// ── 도식 위 편집 (ikken interaction.md 「파라미터 놀이터」) — 이 블록을 그대로 복사해 쓴다 ──
+// 놀이터 도식에서 바로 값을 바꾼다: 끌기(odDrag) · 누르면 그 자리 입력창(odEdit). slider 와 같은 상태를 쓰고, 바꾸면 slider 도 따라 움직인다.
+const odEsc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function odPt(svg,ev){ const p=svg.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+function odClamp(v,o){ v=Math.round(v/o.step)*o.step; return +Math.min(o.max,Math.max(o.min,v)).toFixed(4); }
+// 끌기 — axis 방향으로 끈 SVG 거리 × per 만큼 값이 변한다. 거의 안 움직이고 놓으면 click 으로 본다.
+function odDrag(el,o){
+  el.classList.add('od-drag'); if(o.cursor) el.style.cursor=o.cursor;
+  el.addEventListener('pointerdown',ev=>{
+    if(ev.button!==0) return; ev.preventDefault(); ev.stopPropagation(); odClose();
+    const svg=el.ownerSVGElement, p0=odPt(svg,ev), v0=o.get(); let moved=false; document.body.classList.add('od-dragging');
+    const mv=e=>{ const p=odPt(svg,e), d=(o.axis==='x'?p.x-p0.x:p.y-p0.y)*o.per; if(Math.abs(d)>=o.step/2) moved=true; if(moved) o.set(odClamp(v0+d,o)); };
+    const up=e=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up); removeEventListener('pointercancel',up); document.body.classList.remove('od-dragging'); if(!moved&&o.click) o.click(e); };
+    addEventListener('pointermove',mv); addEventListener('pointerup',up); addEventListener('pointercancel',up);
+  });
+}
+// 그 자리 입력창 — fields: [{label,get,set,min,max,step,unit}], extra: [{label,act}] (예: 삭제)
+let odPop=null;
+function odClose(){ if(odPop){ odPop.remove(); odPop=null; } }
+function odEdit(ev,title,fields,extra=[]){
+  odClose(); const d=document.createElement('div'); d.className='od-pop'; d.setAttribute('role','dialog');
+  d.innerHTML=`<div class="od-h">${odEsc(title)}<button class="od-x" title="닫기 (Esc)" aria-label="닫기">×</button></div>`+
+    fields.map((f,i)=>`<label class="od-r"><span>${odEsc(f.label)}</span><button data-i="${i}" data-d="-1" title="−${f.step}" aria-label="줄이기">−</button><input type="number" data-i="${i}" min="${f.min}" max="${f.max}" step="${f.step}" value="${f.get()}"><button data-i="${i}" data-d="1" title="+${f.step}" aria-label="늘리기">+</button><span class="u">${odEsc(f.unit)}</span></label>`).join('')+
+    (extra.length?`<div class="od-a">${extra.map((x,i)=>`<button data-x="${i}">${odEsc(x.label)}</button>`).join('')}</div>`:'');
+  document.body.appendChild(d); odPop=d;
+  const r=d.getBoundingClientRect(); let x=ev.clientX+12, y=ev.clientY+12;
+  if(x+r.width>innerWidth-8) x=Math.max(8,ev.clientX-r.width-12); if(y+r.height>innerHeight-8) y=Math.max(8,ev.clientY-r.height-12);
+  d.style.left=x+'px'; d.style.top=y+'px';
+  const ap=(i,v)=>{ const f=fields[i]; v=odClamp(v,f); f.set(v); d.querySelector(`input[data-i="${i}"]`).value=v; };
+  d.querySelectorAll('input').forEach(inp=>{ inp.addEventListener('input',()=>{ if(inp.value!=='' && isFinite(+inp.value)) fields[+inp.dataset.i].set(odClamp(+inp.value,fields[+inp.dataset.i])); });
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); odClose(); } }); });
+  d.querySelectorAll('button[data-d]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i; ap(i,fields[i].get()+(+b.dataset.d)*fields[i].step); }));
+  d.querySelectorAll('button[data-x]').forEach(b=>b.addEventListener('click',()=>{ extra[+b.dataset.x].act(); odClose(); }));
+  d.querySelector('.od-x').addEventListener('click',odClose);
+  const first=d.querySelector('input'); if(first){ first.focus(); first.select(); }
+}
+document.addEventListener('pointerdown',ev=>{ if(odPop && !ev.target.closest('.od-pop')) odClose(); },true);
+document.addEventListener('keydown',ev=>{ if(ev.key==='Escape' && odPop){ odClose(); ev.stopImmediatePropagation(); } },true);
+// ── 도식 위 편집 끝 ──
 
 // pan / zoom
 let drag=null;
@@ -338,19 +403,26 @@ function drawSteps(){
     const b=add(stepLabel(i),null,`${stepLabel(i)} · ${STEPS[i].key}`,()=>go(i)); b.setAttribute('aria-current',i===cur?'true':'false')}
   if(PAGED)add('페이지 ›','pg',grp<last?`다음 페이지 (단계 ${rng(grp+1)})`:'',()=>{grp++;drawSteps()},grp===last);
 }
+// link_m 바꾸기 — slider · 도식 손잡이 · 입력창이 모두 이것을 부른다 (같은 상태)
+const LINK={min:0.5,max:4,step:0.1};
+function setLinkM(v){
+  params.link_m=+v; compute(); draw(); const s=STEPS[cur];
+  const k=document.getElementById('k1'); if(k) k.value=params.link_m;
+  const o=document.getElementById('k1v'); if(o) o.textContent=params.link_m.toFixed(1)+' m';
+  const st=document.querySelector('#card .stats'); if(st) st.innerHTML=s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('');
+  const dl=document.querySelector('#card .dl'); const lg2=s.legend&&s.legend(); if(dl&&lg2)dl.innerHTML=lg2.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('');
+  if(sel!=null)select(sel);
+}
 function card(){
   const s=STEPS[cur], lg=s.legend&&s.legend();
   let h=`<div class="k">STEP ${cur+1} · ${s.key}</div><h2>${s.title}</h2>${s.body()}`;
   h+=`<div class="stats">${s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('')}</div>`;
   if(lg)h+=`<h3>이 단계의 판정</h3><ul class="dl">${lg.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('')}</ul>`;
-  if(s.knob)h+=`<div class="uf"><div class="row"><label for="k1">link_m</label><input id="k1" type="range" min="0.5" max="4" step="0.1" value="${params.link_m}"><output class="mono" id="k1v">${params.link_m.toFixed(1)} m</output><button id="k1r" title="기본값 ${DEFAULTS.link_m} m">reset</button></div><div class="hint">키우면 더 먼 점까지 이어져 묶음이 합쳐진다.</div></div>`;
+  if(s.knob)h+=`<div class="uf"><div class="row"><label for="k1">link_m</label><input id="k1" type="range" min="0.5" max="4" step="0.1" value="${params.link_m}"><output class="mono" id="k1v">${params.link_m.toFixed(1)} m</output><button id="k1r" title="기본값 ${DEFAULTS.link_m} m">reset</button></div><div class="hint">키우면 더 먼 점까지 이어져 묶음이 합쳐진다. 그림의 ● 를 끌거나 숫자를 눌러도 바뀐다.</div></div>`;
   document.getElementById('card').innerHTML=h;
   if(s.knob){
     const k=document.getElementById('k1');
-    const upd=v=>{params.link_m=+v;compute();draw();const o=document.getElementById('k1v');o.textContent=params.link_m.toFixed(1)+' m';
-      const st=document.querySelector('#card .stats'); st.innerHTML=s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('');
-      const dl=document.querySelector('#card .dl'); const lg2=s.legend&&s.legend(); if(dl&&lg2)dl.innerHTML=lg2.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('');
-      if(sel!=null)select(sel)};
+    const upd=v=>setLinkM(+v);
     k.oninput=e=>upd(e.target.value);
     document.getElementById('k1r').onclick=()=>{k.value=DEFAULTS.link_m;upd(DEFAULTS.link_m)};
   }
