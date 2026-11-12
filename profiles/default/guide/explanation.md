@@ -11,6 +11,8 @@
 ## 언어
 
 - 문장은 한국어. 용어는 영어 원문 그대로 쓴다: `Kalman gain`, `junction`, `road block`, `bbox`. 억지로 번역하지 않는다.
+- **논문 · 문서를 다루면 그 원문이 쓴 용어를 최우선으로 그대로 쓴다** — 직역한 한국어 조어를 만들지 않는다(`new follower`, `old follower`, `front vehicle`, `politeness factor` 처럼; 처음 나올 때 한 줄 정의는 붙인다). 원문이 같은 대상을 두 이름으로 부르면(`new follower` / `new successor`) 본문은 하나로 통일하고 다른 이름은 처음에 한 번 병기한다. 원문에 없는 개념에만 우리 말을 붙인다.
+  - 이유: (2026-11-12 MOBIL "new follower" 를 "새 뒤차" · "후방 접근 차량" 으로 직역해 사용자가 이해하지 못했다 — "논문 용어를 당신이 직역했기 때문이야. old follower, new follower 등 논문 용어가 있다면 반드시 html 등을 작성할 때 논문 원문 표기를 최우선시해")
 - 코드 식별자·필드·파일 경로는 `<code>` 로 감싼다.
 - 영어는 미국식 철자를 쓴다 (color, center, meter, neighbor, behavior, -ize).
 - 화면에 실리는 **데이터 값**(원본 문자열, 디코드 라벨)은 번역하지 않고 원문 그대로 둔다. 원본과 대조할 수 있어야 한다.
