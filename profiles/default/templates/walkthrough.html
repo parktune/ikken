@@ -110,12 +110,13 @@ code{background:var(--code); padding:1px 5px; border-radius:3px}
 .uf output{font-family:var(--mono); font-size:.82rem; min-width:4.5em; text-align:right}
 .uf button{font:inherit; font-size:.78rem; padding:3px 9px; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:4px; cursor:pointer}
 .uf .hint{font-size:.78rem; color:var(--muted); margin-top:4px}
+[data-symbol].hl{background:color-mix(in srgb,var(--hit) 15%,transparent);outline:1px solid var(--hit)}
 /* 기호 설명 (explanation.md 「수식」) — 식의 기호를 누르면 뜻 · 지금 값. 같은 기호는 함께 강조 */
 .fx{margin:.5rem 0;padding:8px 12px;background:var(--code);border-radius:4px;overflow-x:auto}
 .katex *{pointer-events:none} .katex [data-s],.katex [data-s] *{pointer-events:auto}
 .katex [data-s]{cursor:pointer;border-radius:2px} .katex [data-s]:hover{background:color-mix(in srgb,var(--hit) 12%,transparent)}
 .katex [data-s].hl{background:color-mix(in srgb,var(--hit) 22%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--hit) 50%,transparent)}
-#symtip{position:fixed;z-index:51;background:var(--panel);color:var(--ink);border:1px solid var(--hit);border-radius:4px;padding:6px 26px 6px 9px;font-size:.8rem;max-width:360px;box-shadow:0 2px 12px rgba(0,0,0,.16);line-height:1.5}
+#symtip{position:fixed;z-index:51;background:var(--panel);color:var(--ink);border:1px solid var(--hit);border-radius:4px;padding:6px 26px 6px 9px;font-size:.8rem;max-width:min(360px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;box-shadow:0 2px 12px rgba(0,0,0,.16);line-height:1.5}
 #symtip .x{position:absolute;top:2px;right:4px;border:0;background:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:0 4px}
 /* 도식 위 편집 (interaction.md 「파라미터 놀이터」) — 끄는 손잡이 · 누르는 숫자 · 그 자리 입력창 */
 .od-knob{fill:var(--hit); stroke:var(--panel); stroke-width:2; vector-effect:non-scaling-stroke}
@@ -159,6 +160,9 @@ html.embed .hud .emb{display:inline-block}
   html.embed .layout.nopanel .side{display:flex}
   html.embed .hud .emb{display:none}
 }
+
+/* 2026-11-17 default: 12px 본문, 제목/핵심 수치 계층 유지. */
+body,body p,body li,body td,body th,body label,body input,body select,body button,body output,body .foot,body .card p,body .card ul{font-size:12px}
 </style>
 </head>
 <body>
@@ -334,17 +338,18 @@ const SYMS={
 const Ds=(k,tex)=>`\\htmlData{s=${k}}{${tex||SYMS[k].tex}}`;
 const fx=(s,disp)=>window.katex?katex.renderToString(s,{throwOnError:false,strict:false,displayMode:!!disp,trust:c=>c.command==='\\htmlData'}):s;
 let symK=null, symEl=null; const symtip=document.createElement('div'); symtip.id='symtip'; symtip.hidden=true; document.body.appendChild(symtip);
-function symHL(k,on){document.querySelectorAll(`.katex [data-s="${k}"]`).forEach(e=>e.classList.toggle('hl',on))}
+function symHL(k,on){document.querySelectorAll(`.katex [data-s="${k}"], [data-symbol="${k}"]`).forEach(e=>e.classList.toggle('hl',on))}
 function symPlace(){ if(!symEl||symtip.hidden)return; if(!symEl.isConnected){symSel(null);return}
   const a=symEl.getBoundingClientRect(), r=symtip.getBoundingClientRect(), fb=(symEl.closest('.fx, li, td')||symEl).getBoundingClientRect();
   let x=Math.max(8,Math.min(a.left,innerWidth-8-r.width)), y=fb.bottom+4; if(y+r.height>innerHeight-8)y=fb.top-r.height-4;
-  symtip.style.left=x+'px'; symtip.style.top=y+'px'}
+  symtip.style.left=x+'px'; symtip.style.top=Math.max(8,y)+'px'}
 function symFill(){ if(!symK)return; const s=SYMS[symK];
   symtip.innerHTML=`<button class="x" aria-label="닫기" title="닫기 (Esc)">×</button>${fx(s.tex)} — ${s.t}${s.v?` · 지금 <b>${s.v()}</b>`:''}`; symPlace()}
 function symSel(k,el){ if(symK)symHL(symK,false);
   if(k==null||(k===symK&&el===symEl)){symK=symEl=null;symtip.hidden=true;return}
-  symK=k; symEl=el; symHL(k,true); symtip.hidden=false; symFill()}
+  symK=k; symEl=el; symHL(k,true); symtip.hidden=!!el.closest('[data-symbol]'); if(!symtip.hidden)symFill()}
 document.addEventListener('click',e=>{ if(e.target.closest('#symtip .x')){symSel(null);return} if(e.target.closest('#symtip'))return;
+  const row=e.target.closest('[data-symbol]'); if(row){symSel(row.dataset.symbol,row);return}
   const s=e.target.closest('.katex [data-s]'); if(s){symSel(s.dataset.s,s);return} if(symK)symSel(null)});
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&symK){symSel(null);e.stopImmediatePropagation()} },true);
 addEventListener('scroll',symPlace,true); addEventListener('resize',symPlace);
@@ -459,6 +464,7 @@ const LINK={min:0.5,max:4,step:0.1};
 function setLinkM(v){
   params.link_m=+v; compute(); draw(); const s=STEPS[cur];
   const k=document.getElementById('k1'); if(k) k.value=params.link_m;
+  const number=document.getElementById('k1number'); if(number)number.value=params.link_m;
   const o=document.getElementById('k1v'); if(o) o.textContent=params.link_m.toFixed(1)+' m';
   const st=document.querySelector('#card .stats'); if(st) st.innerHTML=s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('');
   const dl=document.querySelector('#card .dl'); const lg2=s.legend&&s.legend(); if(dl&&lg2)dl.innerHTML=lg2.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('');
@@ -470,12 +476,15 @@ function card(){
   let h=`<div class="k">STEP ${cur+1} · ${s.key}</div><h2>${s.title}</h2>${s.body()}`;
   h+=`<div class="stats">${s.stats().map(([v,l])=>`<div><b>${typeof v==='number'?fmt(v):v}</b><span>${l}</span></div>`).join('')}</div>`;
   if(lg)h+=`<h3>이 단계의 판정</h3><ul class="dl">${lg.map(([n,name,d])=>`<li><b>${fmt(n)}</b><span><em>${name}</em> — ${d}</span></li>`).join('')}</ul>`;
-  if(s.knob)h+=`<div class="uf"><div class="row"><label for="k1">link_m</label><input id="k1" type="range" min="0.5" max="4" step="0.1" value="${params.link_m}"><output class="mono" id="k1v">${params.link_m.toFixed(1)} m</output><button id="k1r" title="기본값 ${DEFAULTS.link_m} m">reset</button></div><div class="hint">키우면 더 먼 점까지 이어져 묶음이 합쳐진다. 그림의 ● 를 끌거나 숫자를 눌러도 바뀐다.</div></div>`;
+  if(s.knob)h+=`<div class="uf"><div class="row"><label for="k1">link_m</label><input id="k1" type="range" min="0.5" max="4" step="0.1" value="${params.link_m}"><input id="k1number" type="number" min="0.5" max="4" step="0.1" value="${params.link_m}" aria-label="link_m 직접 입력" style="width:64px;height:28px;padding:3px 5px"><span class="mono">m</span><button id="k1r" title="기본값 ${DEFAULTS.link_m} m">reset</button></div><div class="hint">키우면 더 먼 점까지 이어져 묶음이 합쳐진다. 그림의 ● 를 끌거나 숫자를 눌러도 바뀐다.</div></div>`;
   document.getElementById('card').innerHTML=h;
   if(s.knob){
     const k=document.getElementById('k1');
     const upd=v=>setLinkM(+v);
     k.oninput=e=>upd(e.target.value);
+    const number=document.getElementById('k1number');
+    number.oninput=()=>{if(number.value!==''&&number.checkValidity())upd(number.value)};
+    number.onchange=()=>{if(number.value===''||!number.checkValidity())number.value=params.link_m};
     document.getElementById('k1r').onclick=()=>{k.value=DEFAULTS.link_m;upd(DEFAULTS.link_m)};
   }
 }

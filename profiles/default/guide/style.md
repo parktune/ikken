@@ -49,7 +49,7 @@
 --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,"IBM Plex Sans KR",monospace;
 ```
 
-- 설명형 페이지(walkthrough, overview)의 본문은 `16px/1.65` 다. 탐색기·3D 처럼 밀도가 높은 페이지는 `14px/1.45` 다.
+- 모든 유형의 기본 본문은 `12px` 로 하고 줄간격은 설명형 `1.65`, 밀도 높은 탐색기·3D `1.45` 로 한다. 제목과 핵심 결과 수치의 계층은 별도로 유지한다. (2026-11-17 최종 피드백: 11px은 작으므로 12px)
 - h1 은 `clamp(1.55rem,3.1vw,2.25rem)`, 700, `letter-spacing:-.01em`, `text-wrap:balance` 다. 탐색기 h1 은 17px 다.
 - 본문 폭은 `max-width:70–72ch` 다.
 - mono 는 id, 숫자 라벨, eyebrow, 단계 번호, 경로, scalebar 에 쓴다.
@@ -126,3 +126,9 @@ CDN 은 **버전 고정 + classic(UMD) 빌드만** 쓴다. `type="module"`, impo
 | 그래프 레이아웃 | `https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js` |
 
 표에 없는 라이브러리가 필요하면 classic 빌드가 있는지 먼저 확인하고, 쓴 뒤 이 표에 추가한다(`/ikken:feedback`).
+
+## 학습용 문서의 기본 글자와 수치
+
+- 본문·표·보조 설명·입력·버튼의 기본 글자 크기는 12px로 한다. 제목 계층은 유지하고 핵심 결과 수치는 크게 표시한다. 11px 기본값은 사용하지 않는다.
+- Loss playground는 도식 바로 아래에 총 loss·구성 항을 큰 숫자 카드로 배치하고, 구성 비율 막대에는 정확도나 절대 품질이 아님을 명시한다.
+  - 이유: (2026-11-17 "폰트 11은 너무 작다. 12로 해", "loss 값 자체가 직관적으로 보이도록 수정해")
