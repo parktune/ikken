@@ -4,6 +4,7 @@
 
 | 날짜 | 피드백 | 반영 | 대상 |
 |---|---|---|---|
+| 2026-11-20 | 구성안 뒤 `만들기` / `구성 조정` 묻지 말고 바로 만들기 | 루트 `SKILL.md` 4 · `README.md` | — |
 | 2026-11-17 | 학습자용 기호·수식, 12px, 떠 있는 설명, 직접조작+오른쪽 slider, loss/IoU 가시화, 거리·facing 투영 (원문: [기록](feedback/20261117_training_workflow.md)) | guide 5개 · templates 7개 | TRAINING_WORKFLOW.html |
 | 2026-11-12 | 논문 용어는 직역하지 말고 원문 표기 최우선 (new follower · old follower …) | `explanation.md` 표기 | mobil_lane_flow_proposal.html · mobil_params_vs_paper.html |
 | 2026-11-11 | 한 화면은 상한이지 꽉 채우라는 뜻이 아님 — 넓게 펼친 판 되돌림 | `style.md` 레이아웃(상한 · 넘칠 때만 줄임 · 가장 긴 프레임 기준), `verify.md` 6 | mobil_lane_flow_proposal.html |
